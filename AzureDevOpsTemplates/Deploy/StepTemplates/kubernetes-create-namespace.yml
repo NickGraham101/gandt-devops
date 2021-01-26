@@ -1,0 +1,36 @@
+parameters:
+  AksResourceGroup: ''
+  AzureSubscription: ''
+  KubernetesCluster: ''
+  Namespace: ''
+
+steps:
+- checkout: gandt-devops
+- task: Kubernetes@1
+  displayName: kubectl get namespaces
+  name: GetNamespaces
+  inputs:
+    connectionType: Azure Resource Manager
+    azureSubscriptionEndpoint: ${{ parameters.AzureSubscription }}
+    azureResourceGroup: ${{ parameters.AksResourceGroup }}
+    kubernetesCluster: ${{ parameters.KubernetesCluster }}
+    useClusterAdmin: true
+    command: 'get'
+    arguments: 'namespace'
+- task: PowerShell@2
+  displayName: 'PowerShell: Output NamespaceExists'
+  inputs:
+    targetType: 'filePath'
+    filePath: gandt-devops/PSScripts/Test-NamespaceExists.ps1
+    arguments: -KubectlOutput '$(GetNamespaces.KubectlOutput)' -Namespace ${{ parameters.Namespace }} -Verbose
+- task: Kubernetes@1
+  displayName: kubectl create ${{ parameters.Namespace }} namespace
+  condition: eq(variables.NamespaceExists, 'false')
+  inputs:
+    connectionType: Azure Resource Manager
+    azureSubscriptionEndpoint: ${{ parameters.AzureSubscription }}
+    azureResourceGroup: ${{ parameters.AksResourceGroup }}
+    kubernetesCluster: ${{ parameters.KubernetesCluster }}
+    useClusterAdmin: true
+    command: 'create'
+    arguments: 'namespace ${{ parameters.Namespace }}'
