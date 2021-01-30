@@ -18,7 +18,12 @@ steps:
     version: ${{ parameters.DotNetCoreVersion }}
     IncludePreviewVersions: ${{ parameters.IncludePreviewVersions }}
 
-- task: gittools.gittools.execute-gitversion-task.gitversion/execute@0
+- task: gitversion/setup@0
+  displayName: Install GitVersion
+  inputs:
+    versionSpec: '5.x'
+
+- task: gitversion/execute@0
   displayName: gitversion/execute
   inputs:
     targetPath: ${{ parameters.GitVersionTargetPath }}
