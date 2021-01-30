@@ -23,7 +23,10 @@ steps:
   inputs:
     targetPath: ${{ parameters.GitVersionTargetPath }}
     useConfigFile: true
-    configFilePath: GitVersion.yml
+    ${{ if eq(parameters.GitVersionTargetPath, '/')  }}:
+      configFilePath: GitVersion.yml
+    ${{ if ne(parameters.GitVersionTargetPath, '/')  }}:
+      configFilePath: ${{ parameters.GitVersionTargetPath }}/GitVersion.yml
 
 # tasks to package a function app
 - task: DotNetCoreCLI@2
