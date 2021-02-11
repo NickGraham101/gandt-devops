@@ -10,57 +10,57 @@ parameters:
   PublishWebApp: 'false'
 
 steps:
- - task: UseDotNet@2
-   displayName: 'Use .NET Core sdk ${{ parameters.DotNetCoreVersion }}'
-   condition: ne('', '${{ parameters.DotNetCoreVersion }}')
-   inputs:
-     version: ${{ parameters.DotNetCoreVersion }}
-     IncludePreviewVersions: ${{ parameters.IncludePreviewVersions }}
+- task: UseDotNet@2
+  displayName: 'Use .NET Core sdk ${{ parameters.DotNetCoreVersion }}'
+  condition: ne('', '${{ parameters.DotNetCoreVersion }}')
+  inputs:
+    version: ${{ parameters.DotNetCoreVersion }}
+    IncludePreviewVersions: ${{ parameters.IncludePreviewVersions }}
  
-  - task: gitversion/setup@0
-    displayName: Install GitVersion
-    inputs:
-      versionSpec: '5.x'
+- task: gitversion/setup@0
+  displayName: Install GitVersion
+  inputs:
+    versionSpec: '5.x'
 
-  - task: gitversion/execute@0
-    displayName: gitversion/execute
-    inputs:
-      targetPath: ${{ parameters.GitVersionTargetPath }}
-      useConfigFile: true
-      ${{ if eq(parameters.GitVersionTargetPath, '/')  }}:
-        configFilePath: GitVersion.yml
-      ${{ if ne(parameters.GitVersionTargetPath, '/')  }}:
-        configFilePath: ${{ parameters.GitVersionTargetPath }}/GitVersion.yml
+- task: gitversion/execute@0
+  displayName: gitversion/execute
+  inputs:
+    targetPath: ${{ parameters.GitVersionTargetPath }}
+    useConfigFile: true
+    ${{ if eq(parameters.GitVersionTargetPath, '/')  }}:
+      configFilePath: GitVersion.yml
+    ${{ if ne(parameters.GitVersionTargetPath, '/')  }}:
+      configFilePath: ${{ parameters.GitVersionTargetPath }}/GitVersion.yml
 
- # tasks to package a function app
- - task: DotNetCoreCLI@2
-   displayName: 'dotnet build application ${{ parameters.SolutionBaseName }}'
-   condition: not(${{ parameters.PublishWebApp }})
-   inputs:
-     command: 'build'
-     projects: '${{ parameters.SolutionRootFolder }}${{ parameters.SolutionBaseName }}/${{ parameters.SolutionBaseName }}.csproj'
-     arguments: '-o $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}/ -c ${{ parameters.BuildConfiguration }}'
+# tasks to package a function app
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet build application ${{ parameters.SolutionBaseName }}'
+  condition: not(${{ parameters.PublishWebApp }})
+  inputs:
+    command: 'build'
+    projects: '${{ parameters.SolutionRootFolder }}${{ parameters.SolutionBaseName }}/${{ parameters.SolutionBaseName }}.csproj'
+    arguments: '-o $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}/ -c ${{ parameters.BuildConfiguration }}'
 
- - task: ArchiveFiles@2
-   displayName: 'Archive Application ${{ parameters.SolutionBaseName }}'
-   condition: not(${{ parameters.PublishWebApp }})
-   inputs: 
-     rootFolderOrFile: $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}
-     archiveFile: $(build.artifactstagingdirectory)/Artifact/${{ parameters.SolutionBaseName }}/DeploymentPackages/${{ parameters.SolutionBaseName }}.zip
-     includeRootFolder: false
+- task: ArchiveFiles@2
+  displayName: 'Archive Application ${{ parameters.SolutionBaseName }}'
+  condition: not(${{ parameters.PublishWebApp }})
+  inputs: 
+    rootFolderOrFile: $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}
+    archiveFile: $(build.artifactstagingdirectory)/Artifact/${{ parameters.SolutionBaseName }}/DeploymentPackages/${{ parameters.SolutionBaseName }}.zip
+    includeRootFolder: false
 
 # task to package a web app
- - task: DotNetCoreCLI@2
-   displayName: 'dotnet publish application ${{ parameters.SolutionBaseName }}'
-   condition: ${{ parameters.PublishWebApp }}
-   inputs:
-     command: 'publish'
-     projects: '${{ parameters.SolutionRootFolder }}${{ parameters.SolutionBaseName }}/${{ parameters.SolutionBaseName }}.csproj'
-     arguments: '-o $(build.artifactstagingdirectory)/Artifact/${{ parameters.SolutionBaseName }}/DeploymentPackages/${{ parameters.SolutionBaseName }}/  -c ${{ parameters.BuildConfiguration }}'
-     publishWebProjects: false #set to false as this setting (which defaults to true) will parse the entire repo for web projects
+- task: DotNetCoreCLI@2
+  displayName: 'dotnet publish application ${{ parameters.SolutionBaseName }}'
+  condition: ${{ parameters.PublishWebApp }}
+  inputs:
+    command: 'publish'
+    projects: '${{ parameters.SolutionRootFolder }}${{ parameters.SolutionBaseName }}/${{ parameters.SolutionBaseName }}.csproj'
+    arguments: '-o $(build.artifactstagingdirectory)/Artifact/${{ parameters.SolutionBaseName }}/DeploymentPackages/${{ parameters.SolutionBaseName }}/  -c ${{ parameters.BuildConfiguration }}'
+    publishWebProjects: false #set to false as this setting (which defaults to true) will parse the entire repo for web projects
 
- - task: PublishPipelineArtifact@1
-   displayName: 'Publish Artifact: ${{ parameters.SolutionBaseName }}'
-   inputs:
-     targetPath: $(build.artifactstagingdirectory)/Artifact/${{ parameters.SolutionBaseName }}/
-     artifactName: ${{ parameters.SolutionBaseName }}.DeploymentPackages
+- task: PublishPipelineArtifact@1
+  displayName: 'Publish Artifact: ${{ parameters.SolutionBaseName }}'
+  inputs:
+    targetPath: $(build.artifactstagingdirectory)/Artifact/${{ parameters.SolutionBaseName }}/
+    artifactName: ${{ parameters.SolutionBaseName }}.DeploymentPackages
