@@ -17,20 +17,20 @@ steps:
      version: ${{ parameters.DotNetCoreVersion }}
      IncludePreviewVersions: ${{ parameters.IncludePreviewVersions }}
  
-- task: gitversion/setup@0
-  displayName: Install GitVersion
-  inputs:
-    versionSpec: '5.x'
+  - task: gitversion/setup@0
+    displayName: Install GitVersion
+    inputs:
+      versionSpec: '5.x'
 
-- task: gitversion/execute@0
-  displayName: gitversion/execute
-  inputs:
-    targetPath: ${{ parameters.GitVersionTargetPath }}
-    useConfigFile: true
-    ${{ if eq(parameters.GitVersionTargetPath, '/')  }}:
-      configFilePath: GitVersion.yml
-    ${{ if ne(parameters.GitVersionTargetPath, '/')  }}:
-      configFilePath: ${{ parameters.GitVersionTargetPath }}/GitVersion.yml
+  - task: gitversion/execute@0
+    displayName: gitversion/execute
+    inputs:
+      targetPath: ${{ parameters.GitVersionTargetPath }}
+      useConfigFile: true
+      ${{ if eq(parameters.GitVersionTargetPath, '/')  }}:
+        configFilePath: GitVersion.yml
+      ${{ if ne(parameters.GitVersionTargetPath, '/')  }}:
+        configFilePath: ${{ parameters.GitVersionTargetPath }}/GitVersion.yml
 
  # tasks to package a function app
  - task: DotNetCoreCLI@2
