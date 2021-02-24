@@ -1,0 +1,87 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "appInsightsName": {
+            "type": "string",
+            "metadata": {
+                "description": "Name of the application insights resource"
+            }
+        },
+        "attachedService": {
+            "defaultValue": "",
+            "type": "string",
+            "metadata": {
+                "description": "Name of the app service the resource monitors (tag only)"
+            }
+        },
+        "dailyQuota": {
+            "type": "string",
+            "metadata": {
+                "description": "Enter daily quota in GB."
+            }
+        },
+        "dailyQuotaResetTime": {
+            "type": "int",
+            "defaultValue": 0,
+            "metadata": {
+                "description": "Enter daily quota reset hour in UTC (0 to 23). Values outside the range will get a random reset hour."
+            }
+        },
+        "warningThreshold": {
+            "type": "int",
+            "defaultValue": 90,
+            "minValue": 1,
+            "maxValue": 100,
+            "metadata": {
+                "description": "Enter the % value of daily quota after which warning mail to be sent."
+            }
+        }
+    },
+    "variables": {
+        "withoutAttachedService": {},
+        "withAttachedService": {
+            "[concat('hidden-link:', resourceId('Microsoft.Web/sites', parameters('attachedService')))]": "Resource"
+        }
+    },
+    "resources": [
+        {
+            "apiVersion": "2015-05-01",
+            "name": "[parameters('appInsightsName')]",
+            "type": "Microsoft.Insights/components",
+            "location": "[resourceGroup().location]",
+            "kind": "web",
+            "tags": "[if(equals(parameters('attachedService'),''), variables('withoutAttachedService'), variables('withAttachedService'))]",
+            "properties": {
+                "Application_Type": "web"
+            }
+        },
+        {
+            "name": "[concat(parameters('appInsightsName'),'/', 'Basic')]",
+            "type": "microsoft.insights/components/CurrentBillingFeatures",
+            "location": "[resourceGroup().location]",
+            "apiVersion": "2015-05-01",
+            "dependsOn": [
+                "[resourceId('microsoft.insights/components', parameters('appInsightsName'))]"
+            ],
+            "properties": {
+                "CurrentBillingFeatures": "Basic",
+                "DataVolumeCap": {
+                    "Cap": "[parameters('dailyQuota')]",
+                    "WarningThreshold": "[parameters('warningThreshold')]",
+                    "ResetTime": "[parameters('dailyQuotaResetTime')]"
+                }
+            }
+        }
+    ],
+    "outputs": {
+        "InstrumentationKey": {
+            "type": "string",
+            "value": "[reference(concat('microsoft.insights/components/', parameters('appInsightsName'))).InstrumentationKey]"
+        },
+        "AppId": {
+            "type": "string",
+            "value": "[reference(concat('microsoft.insights/components/', parameters('appInsightsName'))).AppId]"
+        }
+    }
+}
