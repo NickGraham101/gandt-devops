@@ -34,7 +34,7 @@
             "minValue": 1,
             "maxValue": 100,
             "metadata": {
-                "description": "Enter the % value of daily quota after which warning mail to be sent. "
+                "description": "Enter the % value of daily quota after which warning mail to be sent."
             }
         }
     },
