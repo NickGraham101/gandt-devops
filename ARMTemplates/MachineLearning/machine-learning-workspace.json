@@ -1,0 +1,59 @@
+﻿{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "applicationInsightsName": {
+            "type": "string"
+        },
+        "applicationInsightsResourceGroupName": {
+            "type": "string"
+        },
+        "keyVaultName": {
+            "type": "string"
+        },
+        "keyVaultResourceGroupName": {
+            "type": "string"
+        },
+        "storageAccountName": {
+            "type": "string"
+        },
+        "storageAccountResourceGroupName": {
+            "type": "string"
+        },
+        "workspaceName": {
+            "type": "string"
+        },
+        "sku": {
+            "type": "string",
+            "defaultValue": "Basic",
+            "allowedValues": [
+                "Basic",
+                "Enterprise"
+            ],
+            "metadata": {
+                "description": "Specifies the sku, also referred as 'edition' of the Azure Machine Learning workspace."
+            }
+        }
+    },
+    "resources": [
+        {
+            "type": "Microsoft.MachineLearningServices/workspaces",
+            "apiVersion": "2020-06-01",
+            "name": "[parameters('workspaceName')]",
+            "identity": {
+                "type": "systemAssigned"
+            },
+            "sku": {
+                "tier": "[parameters('sku')]",
+                "name": "[parameters('sku')]"
+            },
+            "properties": {
+                "friendlyName": "[parameters('workspaceName')]",
+                "storageAccount": "[resourceId(parameters('storageAccountResourceGroupName'), 'Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+                "keyVault": "[resourceId(parameters('keyVaultResourceGroupName'), 'Microsoft.KeyVault/vaults', parameters('keyVaultName'))]",
+                "applicationInsights": "[resourceId(parameters('applicationInsightsResourceGroupName'), 'Microsoft.Insights/components', parameters('applicationInsightsName'))]"
+            }
+        }
+    ],
+    "outputs": {}
+}
