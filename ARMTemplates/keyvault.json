@@ -15,8 +15,6 @@
             "type": "Microsoft.KeyVault/vaults",
             "name": "[parameters('keyVaultName')]",
             "apiVersion": "2018-02-14",
-            "location": "[resourceGroup().location]",
-            "tags": {},
             "properties": {
                 "sku": {
                     "family": "A",

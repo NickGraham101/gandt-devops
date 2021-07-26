@@ -49,7 +49,6 @@
             "apiVersion": "2015-05-01",
             "name": "[parameters('appInsightsName')]",
             "type": "Microsoft.Insights/components",
-            "location": "[resourceGroup().location]",
             "kind": "web",
             "tags": "[if(equals(parameters('attachedService'),''), variables('withoutAttachedService'), variables('withAttachedService'))]",
             "properties": {
@@ -59,7 +58,6 @@
         {
             "name": "[concat(parameters('appInsightsName'),'/', 'Basic')]",
             "type": "microsoft.insights/components/CurrentBillingFeatures",
-            "location": "[resourceGroup().location]",
             "apiVersion": "2015-05-01",
             "dependsOn": [
                 "[resourceId('microsoft.insights/components', parameters('appInsightsName'))]"

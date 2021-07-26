@@ -44,12 +44,10 @@
             "apiVersion": "2018-02-01",
             "name": "[parameters('storageAccountName')]",
             "type": "Microsoft.Storage/storageAccounts",
-            "location": "[resourceGroup().location]",
             "sku": {
                 "name": "[parameters('accountType')]"
             },
             "kind": "[parameters('storageKind')]",
-            "tags": {},
             "properties": {
                 "encryption": {
                     "services": {
