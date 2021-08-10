@@ -37,9 +37,10 @@
     },
     "resources": [
         {
+            "name": "[parameters('workspaceName')]",
             "type": "Microsoft.MachineLearningServices/workspaces",
             "apiVersion": "2020-06-01",
-            "name": "[parameters('workspaceName')]",
+            "location": "[resourceGroup().location]",
             "identity": {
                 "type": "systemAssigned"
             },
