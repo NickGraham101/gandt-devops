@@ -26,6 +26,7 @@
                     "name": "standard"
                 },
                 "tenantId": "[subscription().tenantId]",
+                "accessPolicies": [],
                 "enabledForDeployment": false,
                 "enabledForDiskEncryption": false,
                 "enabledForTemplateDeployment": false,
