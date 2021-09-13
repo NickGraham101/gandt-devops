@@ -14,6 +14,9 @@
         "storageAccountName": {
             "type": "string"
         },
+        "storageAccountResourceGroupName": {
+            "type": "string"
+        },
         "workspaceName": {
             "type": "string"
         },
@@ -26,24 +29,15 @@
         {
             "name": "[concat(parameters('workspaceName'), '/', parameters('datastoreName'))]",
             "type": "Microsoft.MachineLearningServices/workspaces/datastores",
-            "apiVersion": "2021-03-01-preview",
+            "apiVersion": "2020-05-01-preview",
             "location": "[resourceGroup().location]",
             "properties": {
-                "contents": {
-                    "accountName": "[parameters('storageAccountName')]",
-                    "containerName": "[parameters('blobContainerName')]",
-                    "contentsType": "AzureBlob",
-                    "credentials": {
-                        "credentialsType": "AccountKey",
-                        "secrets": {
-                            "key": "[parameters('storageAccountKey')]",
-                            "secretsType": "AccountKey"
-                        }
-                    },
-                    "endpoint": "core.windows.net",
-                    "protocol": "https"
-                },
-                "isDefault": "[parameters('defaultDatastore')]"
+				"DataStoreType": "blob",
+				"AccountName": "[parameters('storageAccountName')]",
+				"ContainerName": "[parameters('blobContainerName')]",
+				"AccountKey": "[parameters('storageAccountKey')]",
+				"StorageAccountSubscriptionId": "[subscription().subscriptionId]",
+				"StorageAccountResourceGroup": "[parameters('storageAccountResourceGroupName')]"
             }
         }
     ],
