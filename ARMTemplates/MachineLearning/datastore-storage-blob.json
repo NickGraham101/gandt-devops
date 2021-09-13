@@ -19,10 +19,6 @@
         },
         "workspaceName": {
             "type": "string"
-        },
-        "defaultDatastore": {
-            "type": "bool",
-            "defaultValue": false
         }
     },
     "resources": [
