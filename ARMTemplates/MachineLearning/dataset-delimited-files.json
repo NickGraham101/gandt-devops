@@ -10,7 +10,7 @@
         },
         "datasetType": {
             "type": "string",
-            "allowedValues":[
+            "allowedValues": [
                 "file",
                 "tabular"
             ]
@@ -46,23 +46,25 @@
             "type": "Microsoft.MachineLearningServices/workspaces/datasets",
             "apiVersion": "2020-05-01-preview",
             "location": "[resourceGroup().location]",
-            "datasetType": "[parameters('datasetType')]",
-            "parameters": {
-                "header": "[parameters('delimitedFileHeaders')]",
-                "path": {
-                    "dataPath": {
-                        "datastoreName": "[parameters('datastoreName')]",
-                        "relativePath": "[parameters('datastoreRelativePath')]"
-                    }
+            "properties": {
+                "datasetType": "[parameters('datasetType')]",
+                "parameters": {
+                    "header": "[parameters('delimitedFileHeaders')]",
+                    "path": {
+                        "dataPath": {
+                            "datastoreName": "[parameters('datastoreName')]",
+                            "relativePath": "[parameters('datastoreRelativePath')]"
+                        }
+                    },
+                    "separator": "[parameters('delimitedFileSeparator')]",
+                    "sourceType": "delimited_files"
                 },
-                "separator": "[parameters('delimitedFileSeparator')]",
-                "sourceType": "delimited_files"
-            },
-            "registration": {
-                "description": "[parameters('datasetDescription')]",
-                "name": "[parameters('datasetName')]"
-            },
-            "skipValidation": "[parameters('skipValidation')]"
+                "registration": {
+                    "description": "[parameters('datasetDescription')]",
+                    "name": "[parameters('datasetName')]"
+                },
+                "skipValidation": "[parameters('skipValidation')]"
+            }
         }
     ],
     "outputs": {}
