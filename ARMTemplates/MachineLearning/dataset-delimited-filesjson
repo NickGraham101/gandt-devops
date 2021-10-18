@@ -1,0 +1,69 @@
+﻿{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "datasetDescription": {
+            "type": "string"
+        },
+        "datasetName": {
+            "type": "string"
+        },
+        "datasetType": {
+            "type": "string",
+            "allowedValues":[
+                "file",
+                "tabular"
+            ]
+        },
+        "datastoreName": {
+            "type": "string"
+        },
+        "datastoreRelativePath": {
+            "type": "string"
+        },
+        "delimitedFileHeaders": {
+            "type": "string",
+            "allowedValues": [
+                "all_files_have_same_headers",
+                "combine_all_files_headers",
+                "no_headers",
+                "only_first_file_has_headers"
+            ]
+        },
+        "delimitedFileSeparator": {
+            "type": "string"
+        },
+        "skipValidation": {
+            "type": "bool"
+        },
+        "workspaceName": {
+            "type": "string"
+        }
+    },
+    "resources": [
+        {
+            "name": "[concat(parameters('workspaceName'), '/', parameters('datasetName'))]",
+            "type": "Microsoft.MachineLearningServices/workspaces/datasets",
+            "apiVersion": "2020-05-01-preview",
+            "location": "[resourceGroup().location]",
+            "datasetType": "[parameters('datasetType')]",
+            "parameters": {
+                "header": "[parameters('delimitedFileHeaders')]",
+                "path": {
+                    "dataPath": {
+                        "datastoreName": "[parameters('datastoreName')]",
+                        "relativePath": "[parameters('datastoreRelativePath')]"
+                    }
+                },
+                "separator": "[parameters('delimitedFileSeparator')]",
+                "sourceType": "delimited_files"
+            },
+            "registration": {
+                "description": "[parameters('datasetDescription')]",
+                "name": "[parameters('datasetName')]"
+            },
+            "skipValidation": "[parameters('skipValidation')]"
+        }
+    ],
+    "outputs": {}
+}
