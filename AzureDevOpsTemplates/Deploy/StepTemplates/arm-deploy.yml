@@ -43,8 +43,8 @@ steps:
   displayName: Convert ARM Template Outputs to Variables
   inputs:
     ${{ if eq(parameters.IsMultiRepoCheckout, false)  }}:
-      filePath: Infrastructure-Scripts/ConvertTo-AzureDevOpsVariables.ps1
+      filePath: PSScripts/ConvertTo-AzureDevOpsVariables.ps1
     ${{ if eq(parameters.IsMultiRepoCheckout, true)  }}:
-      filePath: das-platform-automation/Infrastructure-Scripts/ConvertTo-AzureDevOpsVariables.ps1
+      filePath: gandt-devops/PSScripts/ConvertTo-AzureDevOpsVariables.ps1
     arguments: >
       -ARMOutput '$(ARMOutput)'
