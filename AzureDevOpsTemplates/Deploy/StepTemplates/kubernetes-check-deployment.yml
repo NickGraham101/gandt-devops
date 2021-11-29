@@ -17,7 +17,7 @@ steps:
     kubernetesCluster: ${{ parameters.KubernetesCluster }}
     useClusterAdmin: true
     command: get
-    arguments: deployment -namespace ${{ parameters.Namespace }}
+    arguments: deployment --namespace ${{ parameters.Namespace }}
   continueOnError: true 
 - task: PowerShell@2
   displayName: 'PowerShell: Output DeploymentSucceeded'
