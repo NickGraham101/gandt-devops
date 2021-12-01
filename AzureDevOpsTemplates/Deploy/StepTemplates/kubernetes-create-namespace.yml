@@ -21,7 +21,7 @@ steps:
   displayName: 'PowerShell: Output NamespaceExists'
   inputs:
     targetType: 'filePath'
-    filePath: gandt-devops/PSScripts/Test-NamespaceExists.ps1
+    filePath: gandt-devops/PSScripts/Test-KubernetesNamespaceExists.ps1
     arguments: -KubectlOutput '$(GetNamespaces.KubectlOutput)' -Namespace ${{ parameters.Namespace }} -Verbose
 - task: Kubernetes@1
   displayName: kubectl create ${{ parameters.Namespace }} namespace
