@@ -1,0 +1,27 @@
+parameters:
+  AksResourceGroup: 
+  AzureSubscription: 
+  Deployment: 
+  KubernetesCluster: 
+  Namespace: 
+
+steps:
+- checkout: gandt-devops
+- task: Kubernetes@1
+  displayName: kubectl get deployments
+  name: GetDeployments
+  inputs:
+    connectionType: Azure Resource Manager
+    azureSubscriptionEndpoint: ${{ parameters.AzureSubscription }}
+    azureResourceGroup: ${{ parameters.AksResourceGroup }}
+    kubernetesCluster: ${{ parameters.KubernetesCluster }}
+    useClusterAdmin: true
+    command: get
+    arguments: deployment --namespace ${{ parameters.Namespace }}
+  continueOnError: true 
+- task: PowerShell@2
+  displayName: 'PowerShell: Output DeploymentSucceeded'
+  inputs:
+    targetType: 'filePath'
+    filePath: gandt-devops/PSScripts/Test-KubernetesDeploymentSucceeded.ps1
+    arguments: -KubectlOutput '$(GetDeployments.KubectlOutput)' -Deployment ${{ parameters.Deployment }} -Verbose
