@@ -2,6 +2,9 @@
     "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
+        "adminGroupObjectId": {
+            "type": "string"
+        },
         "clusterName": {
             "type": "string",
             "metadata": {
@@ -23,26 +26,8 @@
                 "description": "The name of the resource group used for nodes"
             }
         },
-        "rbacClientAppId": {
-            "type": "string"
-        },
-        "rbacServerAppId": {
-            "type": "string"
-        },
-        "rbacServerAppSecret": {
-            "type": "securestring"
-        },
-        "rbacTenantId": {
-            "type": "string"
-        },
         "serviceCidr": {
             "type": "string"
-        },
-        "servicePrincipalClientId": {
-            "type": "string"
-        },
-        "servicePrincipalSecret": {
-            "type": "securestring"
         },
         "subnetName": {
             "type": "string",
@@ -64,12 +49,14 @@
         },
         "agentPools": {
             "type": "array",
-            "defaultValue": [{
-                "agentNodeCount": 3,
-                "agentPoolName": "agentpool",
-                "agentVMSize": "Standard_DS2_v2",
-                "mode": "System"
-            }],
+            "defaultValue": [
+                {
+                    "agentNodeCount": 3,
+                    "agentPoolName": "agentpool",
+                    "agentVMSize": "Standard_DS2_v2",
+                    "mode": "System"
+                }
+            ],
             "metadata": {
                 "description": "An object containing agentNodeCount, agentPoolName and agentVMSize properties"
             }
@@ -115,35 +102,31 @@
     },
     "resources": [
         {
-            "apiVersion": "2020-03-01",
+            "apiVersion": "2020-09-01",
             "type": "Microsoft.ContainerService/managedClusters",
             "location": "[resourceGroup().location]",
             "name": "[parameters('clusterName')]",
             "properties": {
                 "kubernetesVersion": "[parameters('kubernetesVersion')]",
                 "dnsPrefix": "[parameters('clusterName')]",
-                "agentPoolProfiles": [{
-                    "name": "[parameters('agentPools')[0].agentPoolName]",
-                    "count": "[parameters('agentPools')[0].agentNodeCount]",
-                    "vmSize": "[parameters('agentPools')[0].agentVMSize]",
-                    "osType": "Linux",
-                    "vnetSubnetID": "[variables('vnetSubnetID')]",
-                    "type": "VirtualMachineScaleSets",
-                    "mode": "[if(contains(parameters('agentPools')[0], 'mode'), parameters('agentPools')[0].mode, 'User')]",
-                    "storageProfile": "ManagedDisks"
-                }],
+                "agentPoolProfiles": [
+                    {
+                        "name": "[parameters('agentPools')[0].agentPoolName]",
+                        "count": "[parameters('agentPools')[0].agentNodeCount]",
+                        "vmSize": "[parameters('agentPools')[0].agentVMSize]",
+                        "osType": "Linux",
+                        "vnetSubnetID": "[variables('vnetSubnetID')]",
+                        "type": "VirtualMachineScaleSets",
+                        "mode": "[if(contains(parameters('agentPools')[0], 'mode'), parameters('agentPools')[0].mode, 'User')]",
+                        "storageProfile": "ManagedDisks"
+                    }
+                ],
                 "addonProfiles": "[if(equals(parameters('logAnalyticsWorkspaceName'), ''), variables('addOnObject').noAddons, variables('addOnObject').omsAddon)]",
                 "nodeResourceGroup": "[parameters('nodeResourceGroup')]",
                 "enableRBAC": true,
-                "servicePrincipalProfile": {
-                    "clientId": "[parameters('servicePrincipalClientId')]",
-                    "secret": "[parameters('servicePrincipalSecret')]"
-                },
                 "aadProfile": {
-                    "clientAppID": "[parameters('rbacClientAppId')]",
-                    "serverAppID": "[parameters('rbacServerAppId')]",
-                    "serverAppSecret": "[parameters('rbacServerAppSecret')]",
-                    "tenantID": "[parameters('rbacTenantId')]"
+                    "managed": true,
+                    "adminGroupObjectIDs": "[array(parameters('adminGroupObjectId'))]"
                 },
                 "networkProfile": {
                     "networkPlugin": "kubenet",

@@ -4,6 +4,10 @@ Creates Azure Kubernetes Service
 
 ## Parameters
 
+adminGroupObjectId (required) string
+
+The objectId GUID of the AAD group that will be granted admin priviledges on the cluster
+
 clusterName (required) string
 
 The name of the Managed Cluster resource.
@@ -18,19 +22,7 @@ nodeResourceGroup (required) string
 
 The name of the resource group used for nodes
 
-rbacClientAppId (required) string
-
-rbacServerAppId (required) string
-
-rbacServerAppSecret (required) securestring
-
-rbacTenantId (required) string
-
 serviceCidr (required) string
-
-servicePrincipalClientId (required) string
-
-servicePrincipalSecret (required) securestring
 
 subnetName (required) string
 
