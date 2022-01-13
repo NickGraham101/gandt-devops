@@ -106,7 +106,9 @@
             "type": "Microsoft.ContainerService/managedClusters",
             "location": "[resourceGroup().location]",
             "name": "[parameters('clusterName')]",
-            "identity": "SystemAssigned",
+            "identity": {
+                "type": "SystemAssigned"
+            },
             "properties": {
                 "kubernetesVersion": "[parameters('kubernetesVersion')]",
                 "dnsPrefix": "[parameters('clusterName')]",
