@@ -11,6 +11,34 @@ param(
     [String]$SourceAccountResourceGroup
 )
 
+Begin {
+    function Get-AzStorageFilesRecursively {
+        param(
+            [Parameter(Mandatory=$true)]
+            [String]$ObjectName,
+            [Parameter(Mandatory=$true)]
+            [String]$ShareName,
+            [Parameter(Mandatory=$true)]
+            [String]$SourceAccountName,
+            [Parameter(Mandatory=$true)]
+            [String]$SourceAccountKey
+        )
+    
+        $SourceContext = New-AzStorageContext -StorageAccountName $SourceAccountName -StorageAccountKey $SourceAccountKey
+        $SourceStorageFiles = Get-AzStorageFile -Path $ObjectName -ShareName $SourceFileShare.Name -Context $SourceContext | Get-AzStorageFile
+        foreach ($Object in $SourceStorageFiles) {
+            if ($Object.GetType().Name -eq "AzureStorageFileDirectory") {
+                Write-Verbose "Getting files from directory $($SourceFileShare.Name)"
+                Get-AzStorageFilesRecursively -ObjectName $Object.ShareDirectoryClient.Path -ShareName $SourceFileShare.Name -SourceAccountName $SourceAccountName -SourceAccountKey $SourceAccountKey
+            }
+            else {
+                Write-Verbose "Found file $($Object.Name)"
+                $Object
+            }
+        }
+    }
+}
+
 Process {
     # get storage account context
     if ($PSCmdlet.ParameterSetName -eq "SourceObject") {
@@ -28,6 +56,8 @@ Process {
         return
     }
 
+    ##TO DO: check for destination account, ?create if doesn't exist
+
     if ($PSCmdlet.ParameterSetName -ne "SourceKey" -or $PSCmdlet.ParameterSetName -eq "SourceObject") {
         $SourceAccountKey = ((Get-AzStorageAccountKey -AccountName $SourceAccountName -ResourceGroupName $SourceAccountResourceGroup) | Where-Object {$_.KeyName -eq "key1"}).Value
     }
@@ -41,9 +71,16 @@ Process {
     }
 
     # get fileshares
-    $SourceFileShares = Get-AzStorageShare -Context $SourceContext
-    Write-Output "Retrieved $($SourceFileShares.Count) fileshares"
-    foreach ($SourceFileShare in $SourceFileShares) {
+    $SourceFileshares = Get-AzStorageShare -Context $SourceContext
+    Write-Output "Retrieved $($SourceFileshares.Count) fileshares"
+    foreach ($SourceFileshare in $SourceFileshares | Where-Object { !$_.IsSnapshot }) {
+        $SourceFileshareFiles = @() 
+        $SourceFileshareRoot = Get-AzStorageFile -ShareName $SourceFileshare.Name -Context $SourceContext
+        $SourceFileshareFiles += $SourceFileShareRoot | Where-Object { $_.GetType().Name -ne "AzureStorageFileDirectory" }
+        foreach ($Directory in $SourceFileShareRoot | Where-Object { $_.GetType().Name -eq "AzureStorageFileDirectory" }) {
+            $SourceFileshareFiles += Get-AzStorageFilesRecursively -ObjectName $Directory.Name -ShareName $SourceFileshare.Name -SourceAccountName $SourceAccountName -SourceAccountKey $SourceAccountKey
+        }
+        Write-Output "Retrieved $($SourceFileshareFiles.Count) files from $($SourceFileshare.Name) fileshare"
         ##TO DO: implement copy fileshares
     }
 
