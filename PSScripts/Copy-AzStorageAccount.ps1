@@ -1,3 +1,12 @@
+<#
+.SYNOPSIS
+Copies data from one storage account to another
+
+.DESCRIPTION
+Copies data from one storage account to another.
+Accepts either the name of a single source and destination account or a collection of account objects.  Where a collection is passed in new storage accounts will 
+be created in the same resource group with a supplied suffix.
+#>
 [CmdletBinding(DefaultParameterSetName="None")]
 param(
     [Parameter(Mandatory=$true, ParameterSetName="SourceObject", ValueFromPipeline)]
@@ -8,7 +17,16 @@ param(
     [Parameter(Mandatory=$true, ParameterSetName="SourceKey")]
     [String]$SourceAccountKey,
     [Parameter(Mandatory=$true, ParameterSetName="SourceName")]
-    [String]$SourceAccountResourceGroup
+    [String]$SourceAccountResourceGroup,
+    [Parameter(Mandatory=$true, ParameterSetName="SourceObject")]
+    [String]$DestinationAccountNameSuffix,
+    [Parameter(Mandatory=$true, ParameterSetName="SourceName")]
+    [String]$DestinationAccountName,
+    [Parameter(Mandatory=$false, ParameterSetName="SourceName")]
+    [Parameter(Mandatory=$true, ParameterSetName="SourceKey")]
+    [String]$DestinationAccountKey,
+    [Parameter(Mandatory=$true, ParameterSetName="SourceName")]
+    [String]$DestinationAccountResourceGroup
 )
 
 Begin {
@@ -40,7 +58,7 @@ Begin {
 }
 
 Process {
-    # get storage account context
+    # get source storage account context
     if ($PSCmdlet.ParameterSetName -eq "SourceObject") {
         Write-Output "Process storage account $($SourceAccount.StorageAccountName)"
         $SourceAccountName = $SourceAccount.StorageAccountName
@@ -48,20 +66,36 @@ Process {
     }
     else {
         Write-Output "Process storage account $SourceAccountName"
-        $SourceAccount = Get-AzStorageAccount -Name $SourceAccountName -ResourceGroupName $SourceAccountResourceGroup -Verbose
+        $SourceAccount = Get-AzStorageAccount -Name $SourceAccountName -ResourceGroupName $SourceAccountResourceGroup
     }
 
-    if (@("Storage", "StorageV2") -notcontains $SourceAccount.Kind) {
+    if ($SourceAccount -and @("Storage", "StorageV2") -notcontains $SourceAccount.Kind) {
         Write-Warning "Only supports Storage and StorageV2 account types, skipping $SourceAccountName of type $($SourceAccount.Kind)"
         return
     }
-
-    ##TO DO: check for destination account, ?create if doesn't exist
 
     if ($PSCmdlet.ParameterSetName -ne "SourceKey" -or $PSCmdlet.ParameterSetName -eq "SourceObject") {
         $SourceAccountKey = ((Get-AzStorageAccountKey -AccountName $SourceAccountName -ResourceGroupName $SourceAccountResourceGroup) | Where-Object {$_.KeyName -eq "key1"}).Value
     }
     $SourceContext = New-AzStorageContext -StorageAccountName $SourceAccountName -StorageAccountKey $SourceAccountKey
+
+    # get destination storage account context
+    if ($PSCmdlet.ParameterSetName -eq "SourceObject") {
+        $DestinationAccountName = "$SourceAccountName$DestinationAccountNameSuffix"
+        $DestinationAccountResourceGroup = $SourceAccountResourceGroup
+    }
+    $DestinationAccount = Get-AzStorageAccount -Name $DestinationAccountName -ResourceGroupName $DestinationAccountResourceGroup -ErrorAction SilentlyContinue
+    if (!$DestinationAccount) {
+        Write-Output "Destination account $DestinationAccountName not found, creating"
+        $DestinationResourceGroupObject = Get-AzResourceGroup -Name $DestinationAccountResourceGroup
+        $DestinationAccount = New-AzStorageAccount -SkuName Standard_LRS -Name $DestinationAccountName -ResourceGroupName $DestinationAccountResourceGroup -Location $DestinationResourceGroupObject.Location
+        ##TO DO: handle error if unable to create new account
+    }
+
+    if ($PSCmdlet.ParameterSetName -ne "SourceKey" -or $PSCmdlet.ParameterSetName -eq "SourceObject") {
+        $DestinationAccountKey = ((Get-AzStorageAccountKey -AccountName $DestinationAccountName -ResourceGroupName $DestinationAccountResourceGroup) | Where-Object {$_.KeyName -eq "key1"}).Value
+    }
+    $DestinationContext = New-AzStorageContext -StorageAccountName $DestinationAccountName -StorageAccountKey $DestinationAccountKey
 
     # get containers
     $SourceContainers = Get-AzStorageContainer -Context $SourceContext
