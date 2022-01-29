@@ -104,10 +104,16 @@ Process {
         ##TO DO: implement copy containers
     }
 
-    # get fileshares
+    # get fileshares and files, copy files
     $SourceFileshares = Get-AzStorageShare -Context $SourceContext
     Write-Output "Retrieved $($SourceFileshares.Count) fileshares"
     foreach ($SourceFileshare in $SourceFileshares | Where-Object { !$_.IsSnapshot }) {
+        $DestinationFileshare = Get-AzStorageShare -Context $DestinationContext -Name $SourceFileshare.Name -ErrorAction SilentlyContinue
+        if (!$DestinationFileshare) {
+            Write-Output "Destination fileshare $($SourceFileshare.Name) doesn't exist, creating ..."
+            $DestinationFileshare = New-AzStorageShare -Context $DestinationContext -Name $SourceFileshare.Name
+        }
+        
         $SourceFileshareFiles = @() 
         $SourceFileshareRoot = Get-AzStorageFile -ShareName $SourceFileshare.Name -Context $SourceContext
         $SourceFileshareFiles += $SourceFileShareRoot | Where-Object { $_.GetType().Name -ne "AzureStorageFileDirectory" }
@@ -115,7 +121,16 @@ Process {
             $SourceFileshareFiles += Get-AzStorageFilesRecursively -ObjectName $Directory.Name -ShareName $SourceFileshare.Name -SourceAccountName $SourceAccountName -SourceAccountKey $SourceAccountKey
         }
         Write-Output "Retrieved $($SourceFileshareFiles.Count) files from $($SourceFileshare.Name) fileshare"
-        ##TO DO: implement copy fileshares
+        foreach ($File in $SourceFileshareFiles) {
+            $SubDirectories = $File.ShareFileClient.Path -split "/"
+            for ($d = 0; $d -lt ($SubDirectories.Count - 1); $d++) {
+                $Directory = Get-AzStorageFile -Path ($SubDirectories[0..$d] -join "/") -ShareName $DestinationFileshare.Name -Context $DestinationContext -ErrorAction SilentlyContinue
+                if (!$Directory) {
+                    Write-Output "Destination directory $($SubDirectories[0..$d] -join "/") doesn't exist, creating ..."
+                    New-AzStorageDirectory -Path ($SubDirectories[0..$d] -join "/") -ShareName $DestinationFileshare.Name -Context $DestinationContext | Out-Null
+                }
+            }
+        }
     }
 
     # get tables
