@@ -60,12 +60,12 @@ Begin {
 Process {
     # get source storage account context
     if ($PSCmdlet.ParameterSetName -eq "SourceObject") {
-        Write-Output "Process storage account $($SourceAccount.StorageAccountName)"
+        Write-Output "Copying storage account $($SourceAccount.StorageAccountName)"
         $SourceAccountName = $SourceAccount.StorageAccountName
         $SourceAccountResourceGroup = $SourceAccount.ResourceGroupName
     }
     else {
-        Write-Output "Process storage account $SourceAccountName"
+        Write-Output "Copying storage account $SourceAccountName"
         $SourceAccount = Get-AzStorageAccount -Name $SourceAccountName -ResourceGroupName $SourceAccountResourceGroup
     }
 
@@ -120,9 +120,9 @@ Process {
         foreach ($Directory in $SourceFileShareRoot | Where-Object { $_.GetType().Name -eq "AzureStorageFileDirectory" }) {
             $SourceFileshareFiles += Get-AzStorageFilesRecursively -ObjectName $Directory.Name -ShareName $SourceFileshare.Name -SourceAccountName $SourceAccountName -SourceAccountKey $SourceAccountKey
         }
-        Write-Output "Retrieved $($SourceFileshareFiles.Count) files from $($SourceFileshare.Name) fileshare"
-        foreach ($File in $SourceFileshareFiles) {
-            $SubDirectories = $File.ShareFileClient.Path -split "/"
+        Write-Output "Retrieved $($SourceFileshareFiles.Count) files from $($SourceFileshare.Name) fileshare, starting copy $(Get-Date -Format HH:mm:ss)"
+        for ($f = 0; $f -lt $SourceFileshareFiles.Count; $f++) {
+            $SubDirectories = $SourceFileshareFiles[$f].ShareFileClient.Path -split "/"
             for ($d = 0; $d -lt ($SubDirectories.Count - 1); $d++) {
                 $Directory = Get-AzStorageFile -Path ($SubDirectories[0..$d] -join "/") -ShareName $DestinationFileshare.Name -Context $DestinationContext -ErrorAction SilentlyContinue
                 if (!$Directory) {
@@ -130,7 +130,20 @@ Process {
                     New-AzStorageDirectory -Path ($SubDirectories[0..$d] -join "/") -ShareName $DestinationFileshare.Name -Context $DestinationContext | Out-Null
                 }
             }
+            $FileCopyParams = @{
+                SrcFilePath = $SourceFileshareFiles[$f].ShareFileClient.Path
+                SrcShareName = $SourceFileshareFiles[$f].ShareFileClient.ShareName
+                DestFilePath = $SourceFileshareFiles[$f].ShareFileClient.Path
+                DestShareName = $DestinationFileshare.Name
+                Context = $SourceContext
+                DestContext = $DestinationContext
+                ConcurrentTaskCount = 10 #this is the default value
+                Force = $true
+            }
+            Start-AzStorageFileCopy @FileCopyParams | Out-Null
+            Write-Progress -PercentComplete (($f/$SourceFileshareFiles.Count)*100) -Activity "Copying files"
         }
+        Write-Output "Copy complete $(Get-Date -Format HH:mm:ss)"
     }
 
     # get tables
