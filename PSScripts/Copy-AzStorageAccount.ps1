@@ -43,11 +43,11 @@ Begin {
         )
 
         $SourceContext = New-AzStorageContext -StorageAccountName $SourceAccountName -StorageAccountKey $SourceAccountKey
-        $SourceStorageFiles = Get-AzStorageFile -Path $ObjectName -ShareName $SourceFileShare.Name -Context $SourceContext | Get-AzStorageFile
+        $SourceStorageFiles = Get-AzStorageFile -Path $ObjectName -ShareName $ShareName -Context $SourceContext | Get-AzStorageFile
         foreach ($Object in $SourceStorageFiles) {
             if ($Object.GetType().Name -eq "AzureStorageFileDirectory") {
-                Write-Verbose "Getting files from directory $($SourceFileShare.Name)"
-                Get-AzStorageFilesRecursively -ObjectName $Object.ShareDirectoryClient.Path -ShareName $SourceFileShare.Name -SourceAccountName $SourceAccountName -SourceAccountKey $SourceAccountKey
+                Write-Verbose "Getting files from directory $($ShareName)"
+                Get-AzStorageFilesRecursively -ObjectName $Object.ShareDirectoryClient.Path -ShareName $ShareName -SourceAccountName $SourceAccountName -SourceAccountKey $SourceAccountKey
             }
             else {
                 Write-Verbose "Found file $($Object.Name)"
