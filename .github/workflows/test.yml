@@ -24,6 +24,6 @@ jobs:
       uses: actions/upload-artifact@v2
       with:
         name: ubuntu-Unit-Tests
-        path: **/TEST-*.xml
+        path: '**/TEST-*.xml'
     if: ${{ always() }}
       
