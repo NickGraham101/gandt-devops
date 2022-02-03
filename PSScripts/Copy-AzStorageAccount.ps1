@@ -4,7 +4,7 @@ Copies data from one storage account to another
 
 .DESCRIPTION
 Copies data from one storage account to another.
-Accepts either the name of a single source and destination account or a collection of account objects.  Where a collection is passed in new storage accounts will 
+Accepts either the name of a single source and destination account or a collection of account objects.  Where a collection is passed in new storage accounts will
 be created in the same resource group with a supplied suffix.
 #>
 [CmdletBinding(DefaultParameterSetName="None")]
@@ -41,13 +41,13 @@ Begin {
             [Parameter(Mandatory=$true)]
             [String]$SourceAccountKey
         )
-    
+
         $SourceContext = New-AzStorageContext -StorageAccountName $SourceAccountName -StorageAccountKey $SourceAccountKey
-        $SourceStorageFiles = Get-AzStorageFile -Path $ObjectName -ShareName $SourceFileShare.Name -Context $SourceContext | Get-AzStorageFile
+        $SourceStorageFiles = Get-AzStorageFile -Path $ObjectName -ShareName $ShareName -Context $SourceContext | Get-AzStorageFile
         foreach ($Object in $SourceStorageFiles) {
             if ($Object.GetType().Name -eq "AzureStorageFileDirectory") {
-                Write-Verbose "Getting files from directory $($SourceFileShare.Name)"
-                Get-AzStorageFilesRecursively -ObjectName $Object.ShareDirectoryClient.Path -ShareName $SourceFileShare.Name -SourceAccountName $SourceAccountName -SourceAccountKey $SourceAccountKey
+                Write-Verbose "Getting files from directory $($ShareName)"
+                Get-AzStorageFilesRecursively -ObjectName $Object.ShareDirectoryClient.Path -ShareName $ShareName -SourceAccountName $SourceAccountName -SourceAccountKey $SourceAccountKey
             }
             else {
                 Write-Verbose "Found file $($Object.Name)"
@@ -134,8 +134,8 @@ Process {
             Write-Output "Destination fileshare $($SourceFileshare.Name) doesn't exist, creating ..."
             $DestinationFileshare = New-AzStorageShare -Context $DestinationContext -Name $SourceFileshare.Name
         }
-        
-        $SourceFileshareFiles = @() 
+
+        $SourceFileshareFiles = @()
         $SourceFileshareRoot = Get-AzStorageFile -ShareName $SourceFileshare.Name -Context $SourceContext
         $SourceFileshareFiles += $SourceFileShareRoot | Where-Object { $_.GetType().Name -ne "AzureStorageFileDirectory" }
         foreach ($Directory in $SourceFileShareRoot | Where-Object { $_.GetType().Name -eq "AzureStorageFileDirectory" }) {

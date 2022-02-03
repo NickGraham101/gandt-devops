@@ -16,7 +16,7 @@ elseif ($BuildSourceBranchName -eq "merge") {
 
     Write-Output "##vso[task.setvariable variable=DockerImageTag]prbuild"
     Write-Verbose "DockerImageTag set to 'prbuild'"
-    
+
 }
 else {
 
@@ -29,10 +29,7 @@ else {
     else {
 
         throw "Branch name invalid, must match pattern '^(\d{3}|B\d{3})-\w*'"
-        
+
     }
 
 }
-
-
-

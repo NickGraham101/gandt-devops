@@ -1,0 +1,28 @@
+name: Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types: [opened, reopened, synchronize, labeled]
+
+jobs:
+  build:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Invoke Tests
+      shell: pwsh
+      run: Tests/Invoke-Tests.ps1
+    - name: Upload test results
+      uses: actions/upload-artifact@v2
+      with:
+        name: ubuntu-Unit-Tests
+        path: '**/TEST-*.xml'
+    if: ${{ always() }}
+      

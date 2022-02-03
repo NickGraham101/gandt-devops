@@ -32,7 +32,7 @@ if ($PSCmdlet.ParameterSetName -eq "ARecord") {
         $RecordSetName = "$HostName.$DomainName"
 
     }
-    
+
     $RecordSetValue = $IpAddress
     $RecordSetType = "A"
 
