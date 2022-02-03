@@ -10,14 +10,14 @@ $KubectlObject = ConvertFrom-Json -InputObject $KubectlOutput
 $KubectlObject
 $Deployment = $KubectlObject.items | Where-Object { $_.metadata.name -eq $Deployment }
 Write-Host $($Deployment.metadata.name)
-if ($Deployment.status.availableReplicas -gt 0) { 
-    
-    Write-Output "##vso[task.setvariable variable=DeploymentSucceeded]true" 
+if ($Deployment.status.availableReplicas -gt 0) {
+
+    Write-Output "##vso[task.setvariable variable=DeploymentSucceeded]true"
 
 }
 else {
 
-    Write-Output "##vso[task.setvariable variable=DeploymentSucceeded]false" 
+    Write-Output "##vso[task.setvariable variable=DeploymentSucceeded]false"
 
 }
 
