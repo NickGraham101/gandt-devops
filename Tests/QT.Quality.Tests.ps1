@@ -1,5 +1,5 @@
 BeforeDiscovery {
-    $Scripts = Get-ChildItem -Path $PSScriptRoot\.. -File -Include "*.ps1", "*.psm1" -Recurse | Where-Object { $_.DirectoryName -notmatch ".*\\Tests|.+\\Tests\\.+" }
+    $Scripts = Get-ChildItem -Path $PSScriptRoot\.. -File -Include "*.ps1", "*.psm1" -Recurse | Where-Object { $_.DirectoryName -notmatch ".*\\Tests|.+\\Tests\\.+|.*\/Tests|.+\/Tests\/.+" }
     $Rules = Get-ScriptAnalyzerRule
 }
 
