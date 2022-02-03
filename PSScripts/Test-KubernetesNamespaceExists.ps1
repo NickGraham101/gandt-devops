@@ -9,7 +9,7 @@ param(
 $KubectlObject = ConvertFrom-Json -InputObject $KubectlOutput
 $KubectlObject
 $Namespace = $KubectlObject.items | Where-Object { $_.metadata.name -eq $Namespace }
-Write-Host $($Namespace.metadata.name)
+Write-Output $($Namespace.metadata.name)
 if ($Namespace) {
 
     Write-Output "##vso[task.setvariable variable=NamespaceExists]true"
