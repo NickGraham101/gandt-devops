@@ -97,11 +97,32 @@ Process {
     }
     $DestinationContext = New-AzStorageContext -StorageAccountName $DestinationAccountName -StorageAccountKey $DestinationAccountKey
 
-    # get containers
+    # get containers and blobs, copy blobs
     $SourceContainers = Get-AzStorageContainer -Context $SourceContext
     Write-Output "Retrieved $($SourceContainers.Count) containers"
     foreach ($SourceContainer in $SourceContainers) {
-        ##TO DO: implement copy containers
+        $DestinationContainer = Get-AzStorageContainer -Name $SourceContainer.Name -Context $DestinationContext -ErrorAction SilentlyContinue
+        if (!$DestinationContainer) {
+            Write-Output "Destination container $($SourceContainer.Name) doesn't exist, creating ..."
+            $DestinationContainer = New-AzStorageContainer -Name $SourceContainer.Name -Context $DestinationContext
+        }
+        $SourceBlobs = Get-AzStorageBlob -Container $SourceContainer.Name -Context $SourceContext
+        Write-Output "Retrieved $($SourceBlobs.Count) blobs from $($SourceContainer.Name) container, starting copy $(Get-Date -Format HH:mm:ss)"
+        for ($b = 0; $b -lt $SourceBlobs.Count; $b++) {
+            $BlobCopyParams = @{
+                SrcBlob = $SourceBlobs[$b].Name
+                SrcContainer = $SourceContainer.Name
+                Context = $SourceContext
+                DestBlob = $SourceBlobs[$b].Name
+                DestContainer = $DestinationContainer.Name
+                DestContext = $DestinationContext
+                ConcurrentTaskCount = 10 #this is the default value
+                Force = $true
+            }
+            Start-AzStorageBlobCopy @BlobCopyParams | Out-Null
+            Write-Progress -PercentComplete (($b/$SourceBlobs.Count)*100) -Activity "Copying blobs"
+        }
+        Write-Output "Blob copy from $($SourceContainer.Name) complete $(Get-Date -Format HH:mm:ss)"
     }
 
     # get fileshares and files, copy files
@@ -143,7 +164,7 @@ Process {
             Start-AzStorageFileCopy @FileCopyParams | Out-Null
             Write-Progress -PercentComplete (($f/$SourceFileshareFiles.Count)*100) -Activity "Copying files"
         }
-        Write-Output "Copy complete $(Get-Date -Format HH:mm:ss)"
+        Write-Output "Fileshare copy from $($SourceFileshare.Name) complete $(Get-Date -Format HH:mm:ss)"
     }
 
     # get tables
