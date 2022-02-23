@@ -81,15 +81,25 @@ Process {
 
     # get destination storage account context
     if ($PSCmdlet.ParameterSetName -eq "SourceObject") {
-        $DestinationAccountName = "$SourceAccountName$DestinationAccountNameSuffix"
+        if ($SourceAccountName.Length -lt (24 - $DestinationAccountNameSuffix.Length)) {
+            $DestinationAccountName = "$SourceAccountName$DestinationAccountNameSuffix"
+        }
+        else {
+            $DestinationAccountName = "$($SourceAccountName.Substring(0,24 - $DestinationAccountNameSuffix.Length))$DestinationAccountNameSuffix"
+        }
         $DestinationAccountResourceGroup = $SourceAccountResourceGroup
     }
     $DestinationAccount = Get-AzStorageAccount -Name $DestinationAccountName -ResourceGroupName $DestinationAccountResourceGroup -ErrorAction SilentlyContinue
     if (!$DestinationAccount) {
         Write-Output "Destination account $DestinationAccountName not found, creating"
         $DestinationResourceGroupObject = Get-AzResourceGroup -Name $DestinationAccountResourceGroup
-        $DestinationAccount = New-AzStorageAccount -SkuName Standard_LRS -Name $DestinationAccountName -ResourceGroupName $DestinationAccountResourceGroup -Location $DestinationResourceGroupObject.Location
-        ##TO DO: handle error if unable to create new account
+        try {
+            $DestinationAccount = New-AzStorageAccount -SkuName Standard_LRS -Name $DestinationAccountName -ResourceGroupName $DestinationAccountResourceGroup -Location $DestinationResourceGroupObject.Location
+        }
+        catch {
+            Write-Error "Unable to create account $DestinationAccountName, skipping`n$_"
+            return
+        }
     }
 
     if ($PSCmdlet.ParameterSetName -ne "SourceKey" -or $PSCmdlet.ParameterSetName -eq "SourceObject") {
