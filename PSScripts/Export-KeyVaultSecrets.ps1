@@ -9,15 +9,15 @@ write the secrets to a replacement Key Vault in a different subscription.
 
 This script was designed for working with a hobby project.  Before using it in a production environment you should evaluate whether it meets your security requirements.
 #>
-[CmdletBinding()]
+[CmdletBinding(DefaultParameterSetName="None")]
 param(
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$true, ParameterSetName="StagingKeyvVault")]
     [String]$LocalBackupFolderPath,
     [Parameter(Mandatory=$true)]
     [String]$SourceKeyVaultName,
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$true, ParameterSetName="StagingKeyvVault")]
     [String]$StagingKeyVaultName,
-    [Parameter(Mandatory=$false)]
+    [Parameter(Mandatory=$false, ParameterSetName="StagingKeyvVault")]
     [Switch]$OverwriteStagingKeyVaultSecrets
 )
 
@@ -27,40 +27,44 @@ class KeyVaultSecret {
 }
 
 $SourceKeyVault = Get-AzKeyVault -VaultName $SourceKeyVaultName
-$StagingKeyVault = Get-AzKeyVault -VaultName $StagingKeyVaultName -ErrorAction SilentlyContinue
-if (!$StagingKeyVault) {
-    Write-Information -MessageData "Staging Key Vault $StagingKeyVaultName doesn't exist, creating in resource group $($SourceKeyVault.ResourceGroupName)" -InformationAction Continue
-    $StagingKeyVault = New-AzKeyVault -Name $StagingKeyVaultName -ResourceGroupName $SourceKeyVault.ResourceGroupName -Location $SourceKeyVault.Location
+if ($StagingKeyVaultName) {
+    $StagingKeyVault = Get-AzKeyVault -VaultName $StagingKeyVaultName -ErrorAction SilentlyContinue
+    if (!$StagingKeyVault) {
+        Write-Information -MessageData "Staging Key Vault $StagingKeyVaultName doesn't exist, creating in resource group $($SourceKeyVault.ResourceGroupName)" -InformationAction Continue
+        $StagingKeyVault = New-AzKeyVault -Name $StagingKeyVaultName -ResourceGroupName $SourceKeyVault.ResourceGroupName -Location $SourceKeyVault.Location
+    }
 }
 
 $Secrets = Get-AzKeyVaultSecret -VaultName $SourceKeyVaultName
 $SecretValues = @()
 
 foreach ($Secret in $Secrets) {
-    # backup and restore key vault secrets to temp key vault in same subscription
-    $SecretBackup = Backup-AzKeyVaultSecret -VaultName $SourceKeyVault.VaultName -Name $Secret.Name -OutputFile "$LocalBackupFolderPath\$($Secret.Name).blob" -Force
-    $StagingKeyVaultSecretParams = @{
-        Name = $Secret.Name
-        VaultName = $StagingKeyVault.VaultName
-    }
-    $BackupDestination = Get-AzKeyVaultSecret @StagingKeyVaultSecretParams -ErrorAction SilentlyContinue
-    if ($BackupDestination) {
-        Write-Warning "Secret $($Secret.Name) already exists in Key Vault $($StagingKeyVault.VaultName)"
-        if ($OverwriteStagingKeyVaultSecrets.IsPresent) {
-            Remove-AzKeyVaultSecret @StagingKeyVaultSecretParams -Force
-            ##TO DO: implement while loops to confirm secret has been deleted / purged
-            Start-Sleep -Seconds 5
-            Remove-AzKeyVaultSecret @StagingKeyVaultSecretParams -Force -InRemovedState
-            Start-Sleep -Seconds 5
+    if ($StagingKeyVaultName) {
+        # backup and restore key vault secrets to temp key vault in same subscription
+        $SecretBackup = Backup-AzKeyVaultSecret -VaultName $SourceKeyVault.VaultName -Name $Secret.Name -OutputFile "$LocalBackupFolderPath\$($Secret.Name).blob" -Force
+        $StagingKeyVaultSecretParams = @{
+            Name = $Secret.Name
+            VaultName = $StagingKeyVault.VaultName
         }
-        else {
-            Write-Output "OverwriteStagingKeyVaultSecrets not set, skipping"
-            continue
+        $BackupDestination = Get-AzKeyVaultSecret @StagingKeyVaultSecretParams -ErrorAction SilentlyContinue
+        if ($BackupDestination) {
+            Write-Warning "Secret $($Secret.Name) already exists in Key Vault $($StagingKeyVault.VaultName)"
+            if ($OverwriteStagingKeyVaultSecrets.IsPresent) {
+                Remove-AzKeyVaultSecret @StagingKeyVaultSecretParams -Force
+                ##TO DO: implement while loops to confirm secret has been deleted / purged
+                Start-Sleep -Seconds 5
+                Remove-AzKeyVaultSecret @StagingKeyVaultSecretParams -Force -InRemovedState
+                Start-Sleep -Seconds 5
+            }
+            else {
+                Write-Output "OverwriteStagingKeyVaultSecrets not set, skipping"
+                continue
+            }
         }
+        Write-Information -MessageData "Restoring secret $($Secret.Name) to staging Key Vault $($StagingKeyVault.VaultName)" -InformationAction Continue
+        Restore-AzKeyVaultSecret -VaultName $StagingKeyVault.VaultName -InputFile $SecretBackup | Out-Null
+        Remove-Item -Path $SecretBackup
     }
-    Write-Information -MessageData "Restoring secret $($Secret.Name) to staging Key Vault $($StagingKeyVault.VaultName)" -InformationAction Continue
-    Restore-AzKeyVaultSecret -VaultName $StagingKeyVault.VaultName -InputFile $SecretBackup | Out-Null
-    Remove-Item -Path $SecretBackup
 
     # return secret names and values as an object
     $SecretValue = Get-AzKeyVaultSecret -VaultName $Secret.VaultName -Name $Secret.Name -AsPlainText
