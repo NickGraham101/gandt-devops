@@ -16,7 +16,9 @@ param(
     [Parameter(Mandatory=$true)]
     [String]$SourceKeyVaultName,
     [Parameter(Mandatory=$true)]
-    [String]$StagingKeyVaultName
+    [String]$StagingKeyVaultName,
+    [Parameter(Mandatory=$false)]
+    [Switch]$OverwriteStagingKeyVaultSecrets
 )
 
 class KeyVaultSecret {
@@ -37,7 +39,26 @@ $SecretValues = @()
 foreach ($Secret in $Secrets) {
     # backup and restore key vault secrets to temp key vault in same subscription
     $SecretBackup = Backup-AzKeyVaultSecret -VaultName $SourceKeyVault.VaultName -Name $Secret.Name -OutputFile "$LocalBackupFolderPath\$($Secret.Name).blob" -Force
-    Restore-AzKeyVaultSecret -VaultName $StagingKeyVault.VaultName -InputFile $SecretBackup
+    $StagingKeyVaultSecretParams = @{
+        Name = $Secret.Name
+        VaultName = $StagingKeyVault.VaultName
+    }
+    $BackupDestination = Get-AzKeyVaultSecret @StagingKeyVaultSecretParams -ErrorAction SilentlyContinue
+    if ($BackupDestination) {
+        Write-Warning "Secret $($Secret.Name) already exists in Key Vault $($StagingKeyVault.VaultName)"
+        if ($OverwriteStagingKeyVaultSecrets.IsPresent) {
+            Remove-AzKeyVaultSecret @StagingKeyVaultSecretParams -Force
+            ##TO DO: implement while loops to confirm secret has been deleted / purged
+            Start-Sleep -Seconds 2
+            Remove-AzKeyVaultSecret @StagingKeyVaultSecretParams -Force -InRemovedState
+            Start-Sleep -Seconds 2
+        }
+        else {
+            Write-Output "OverwriteStagingKeyVaultSecrets not set, skipping"
+            continue
+        }
+    }
+    Restore-AzKeyVaultSecret -VaultName $StagingKeyVault.VaultName -InputFile $SecretBackup | Out-Null
     Remove-Item -Path $SecretBackup
 
     # return secret names and values as an object
