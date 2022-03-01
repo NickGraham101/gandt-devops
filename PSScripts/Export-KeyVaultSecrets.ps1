@@ -49,15 +49,16 @@ foreach ($Secret in $Secrets) {
         if ($OverwriteStagingKeyVaultSecrets.IsPresent) {
             Remove-AzKeyVaultSecret @StagingKeyVaultSecretParams -Force
             ##TO DO: implement while loops to confirm secret has been deleted / purged
-            Start-Sleep -Seconds 2
+            Start-Sleep -Seconds 5
             Remove-AzKeyVaultSecret @StagingKeyVaultSecretParams -Force -InRemovedState
-            Start-Sleep -Seconds 2
+            Start-Sleep -Seconds 5
         }
         else {
             Write-Output "OverwriteStagingKeyVaultSecrets not set, skipping"
             continue
         }
     }
+    Write-Output "Restoring $($Secret.Name)"
     Restore-AzKeyVaultSecret -VaultName $StagingKeyVault.VaultName -InputFile $SecretBackup | Out-Null
     Remove-Item -Path $SecretBackup
 
