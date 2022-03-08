@@ -11,18 +11,18 @@ be created in the same resource group with a supplied suffix.
 param(
     [Parameter(Mandatory=$true, ParameterSetName="SourceObject", ValueFromPipeline)]
     [object[]]$SourceAccount,
+    [Parameter(Mandatory=$true, ParameterSetName="SourceKey")]
     [Parameter(Mandatory=$true, ParameterSetName="SourceName")]
     [String]$SourceAccountName,
-    [Parameter(Mandatory=$false, ParameterSetName="SourceName")]
     [Parameter(Mandatory=$true, ParameterSetName="SourceKey")]
     [String]$SourceAccountKey,
     [Parameter(Mandatory=$true, ParameterSetName="SourceName")]
     [String]$SourceAccountResourceGroup,
     [Parameter(Mandatory=$true, ParameterSetName="SourceObject")]
     [String]$DestinationAccountNameSuffix,
+    [Parameter(Mandatory=$true, ParameterSetName="SourceKey")]
     [Parameter(Mandatory=$true, ParameterSetName="SourceName")]
     [String]$DestinationAccountName,
-    [Parameter(Mandatory=$false, ParameterSetName="SourceName")]
     [Parameter(Mandatory=$true, ParameterSetName="SourceKey")]
     [String]$DestinationAccountKey,
     [Parameter(Mandatory=$true, ParameterSetName="SourceName")]
@@ -58,13 +58,13 @@ Begin {
 }
 
 Process {
-    # get source storage account context
+    # get source storage account
     if ($PSCmdlet.ParameterSetName -eq "SourceObject") {
         Write-Output "Copying storage account $($SourceAccount.StorageAccountName)"
         $SourceAccountName = $SourceAccount.StorageAccountName
         $SourceAccountResourceGroup = $SourceAccount.ResourceGroupName
     }
-    else {
+    elseif ($PSCmdlet.ParameterSetName -eq "SourceName") {
         Write-Output "Copying storage account $SourceAccountName"
         $SourceAccount = Get-AzStorageAccount -Name $SourceAccountName -ResourceGroupName $SourceAccountResourceGroup
     }
@@ -89,16 +89,18 @@ Process {
         }
         $DestinationAccountResourceGroup = $SourceAccountResourceGroup
     }
-    $DestinationAccount = Get-AzStorageAccount -Name $DestinationAccountName -ResourceGroupName $DestinationAccountResourceGroup -ErrorAction SilentlyContinue
-    if (!$DestinationAccount) {
-        Write-Output "Destination account $DestinationAccountName not found, creating"
-        $DestinationResourceGroupObject = Get-AzResourceGroup -Name $DestinationAccountResourceGroup
-        try {
-            $DestinationAccount = New-AzStorageAccount -SkuName Standard_LRS -Name $DestinationAccountName -ResourceGroupName $DestinationAccountResourceGroup -Location $DestinationResourceGroupObject.Location
-        }
-        catch {
-            Write-Error "Unable to create account $DestinationAccountName, skipping`n$_"
-            return
+    if ($PSCmdlet.ParameterSetName -ne "SourceKey") {
+        $DestinationAccount = Get-AzStorageAccount -Name $DestinationAccountName -ResourceGroupName $DestinationAccountResourceGroup -ErrorAction SilentlyContinue
+        if (!$DestinationAccount) {
+            Write-Output "Destination account $DestinationAccountName not found, creating"
+            $DestinationResourceGroupObject = Get-AzResourceGroup -Name $DestinationAccountResourceGroup
+            try {
+                $DestinationAccount = New-AzStorageAccount -SkuName Standard_LRS -Name $DestinationAccountName -ResourceGroupName $DestinationAccountResourceGroup -Location $DestinationResourceGroupObject.Location
+            }
+            catch {
+                Write-Error "Unable to create account $DestinationAccountName, skipping`n$_"
+                return
+            }
         }
     }
 
