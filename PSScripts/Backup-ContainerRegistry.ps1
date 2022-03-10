@@ -5,8 +5,6 @@ param(
     [Parameter(Mandatory=$true)]
     [String]$DestinationContainerRegistryName,
     [Parameter(Mandatory=$true, ParameterSetName="CrossTenant")]
-    [String]$DestinationContainerRegistryResourceGroupName,
-    [Parameter(Mandatory=$true, ParameterSetName="CrossTenant")]
     [String]$DestinationTenant,
     [Parameter(Mandatory=$true)]
     [String]$SourceContainerRegistryName
