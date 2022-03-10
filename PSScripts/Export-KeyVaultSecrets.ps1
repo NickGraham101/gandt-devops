@@ -3,7 +3,7 @@
 Copies secrets from a Key Vault into a temporary KeyVault.  Returns the secret names and current values as an object.
 
 .DESCRIPTION
-This script is intended to be used with Import-KeyVaultSecrets to copy a KeyVault from one subscription to another (including in a different tenant).  It backups up the secrets 
+This script is intended to be used with Import-KeyVaultSecrets to copy a KeyVault from one subscription to another (including in a different tenant).  It backups up the secrets
 from the source Key Vault to a staging Key Vault then returns the name and current value of each secret in an object.  This can be consumed by Import-KeyVaultSecrets which will
 write the secrets to a replacement Key Vault in a different subscription.
 
