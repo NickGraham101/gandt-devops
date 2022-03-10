@@ -26,11 +26,13 @@ class KeyVaultSecret {
     [String]$SecretValue
 }
 
+$InformationPreference = "Continue"
+
 $SourceKeyVault = Get-AzKeyVault -VaultName $SourceKeyVaultName
 if ($StagingKeyVaultName) {
     $StagingKeyVault = Get-AzKeyVault -VaultName $StagingKeyVaultName -ErrorAction SilentlyContinue
     if (!$StagingKeyVault) {
-        Write-Information -MessageData "Staging Key Vault $StagingKeyVaultName doesn't exist, creating in resource group $($SourceKeyVault.ResourceGroupName)" -InformationAction Continue
+        Write-Information -MessageData "Staging Key Vault $StagingKeyVaultName doesn't exist, creating in resource group $($SourceKeyVault.ResourceGroupName)"
         $StagingKeyVault = New-AzKeyVault -Name $StagingKeyVaultName -ResourceGroupName $SourceKeyVault.ResourceGroupName -Location $SourceKeyVault.Location
     }
 }
@@ -61,7 +63,7 @@ foreach ($Secret in $Secrets) {
                 continue
             }
         }
-        Write-Information -MessageData "Restoring secret $($Secret.Name) to staging Key Vault $($StagingKeyVault.VaultName)" -InformationAction Continue
+        Write-Information -MessageData "Restoring secret $($Secret.Name) to staging Key Vault $($StagingKeyVault.VaultName)"
         Restore-AzKeyVaultSecret -VaultName $StagingKeyVault.VaultName -InputFile $SecretBackup | Out-Null
         Remove-Item -Path $SecretBackup
     }
