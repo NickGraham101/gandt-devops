@@ -19,10 +19,9 @@ jobs:
     - name: Invoke Tests
       shell: pwsh
       run: Tests/Invoke-Tests.ps1
-    - name: Upload test results
-      uses: actions/upload-artifact@v2
+    - name: Publish Unit Test Results
+      uses: EnricoMi/publish-unit-test-result-action/composite@v1
+      if: always()
       with:
-        name: ubuntu-Unit-Tests
-        path: '**/TEST-*.xml'
-    if: ${{ always() }}
+        files: '**/TEST-*.xml'
       
