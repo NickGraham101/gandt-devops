@@ -136,7 +136,8 @@
                     "serviceCidr": "[parameters('serviceCidr')]",
                     "dnsServiceIP": "[parameters('dnsServiceIp')]",
                     "podCidr": "[parameters('podCidr')]",
-                    "dockerBridgeCidr": "[parameters('dockerBridgeCidr')]"
+                    "dockerBridgeCidr": "[parameters('dockerBridgeCidr')]",
+                    "loadBalancerSku": "basic"
                 },
                 "servicePrincipalProfile": {}
             }
