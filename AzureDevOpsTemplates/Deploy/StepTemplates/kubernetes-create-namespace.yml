@@ -10,7 +10,7 @@ steps:
 - task: Kubernetes@1
   condition: and(${{ parameters.CreateNamespace }}, succeeded())
   displayName: kubectl get namespaces
-  name: GetNamespaces_${{ parameters.Namespace }}
+  name: GetNamespaces_${{ replace(parameters.Namespace, '-','_') }}
   inputs:
     connectionType: Azure Resource Manager
     azureSubscriptionEndpoint: ${{ parameters.AzureSubscription }}
@@ -25,7 +25,7 @@ steps:
   inputs:
     targetType: 'filePath'
     filePath: gandt-devops/PSScripts/Test-KubernetesNamespaceExists.ps1
-    arguments: -KubectlOutput '$(GetNamespaces_${{ parameters.Namespace }}.KubectlOutput)' -Namespace ${{ parameters.Namespace }} -Verbose
+    arguments: -KubectlOutput '$(GetNamespaces_${{ replace(parameters.Namespace, '-','_') }}.KubectlOutput)' -Namespace ${{ parameters.Namespace }} -Verbose
 - task: Kubernetes@1
   displayName: kubectl create ${{ parameters.Namespace }} namespace
   condition: and(eq(variables.NamespaceExists, 'false'), ${{ parameters.CreateNamespace }}, succeeded())
