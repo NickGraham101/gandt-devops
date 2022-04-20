@@ -56,7 +56,7 @@ steps:
   inputs:
     command: 'publish'
     projects: '${{ parameters.SolutionRootFolder }}${{ parameters.SolutionBaseName }}/${{ parameters.SolutionBaseName }}.csproj'
-    arguments: '-o $(build.artifactstagingdirectory)/Artifact/${{ parameters.SolutionBaseName }}/DeploymentPackages/${{ parameters.SolutionBaseName }}/  -c ${{ parameters.BuildConfiguration }}'
+    arguments: '-o $(build.artifactstagingdirectory)/Artifact/${{ parameters.SolutionBaseName }}/DeploymentPackages/  -c ${{ parameters.BuildConfiguration }}'
     publishWebProjects: false #set to false as this setting (which defaults to true) will parse the entire repo for web projects
 
 - task: PublishPipelineArtifact@1
