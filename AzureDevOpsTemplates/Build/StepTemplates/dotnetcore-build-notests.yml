@@ -1,13 +1,14 @@
 # GitVersion: if a GitVersion config file is required this should be stored at the root of the repo.  If the file doesn't exist GitVersion defaults will be used - https://gitversion.readthedocs.io/en/latest/
 parameters:
-  SolutionRootFolder: '' # must include final forward slash
-  SolutionBaseName: ''
+  # must include final forward slash
+  SolutionRootFolder:  
+  SolutionBaseName: 
   BuildPlatform: 'any cpu'
   BuildConfiguration: 'release'
-  DotNetCoreVersion: ''
+  DotNetCoreVersion: 
   GitVersionTargetPath: '/'
   IncludePreviewVersions: false
-  PublishWebApp: 'false'
+  Publish: false
 
 steps:
 - task: UseDotNet@2
@@ -35,7 +36,7 @@ steps:
 # tasks to package a function app
 - task: DotNetCoreCLI@2
   displayName: 'dotnet build application ${{ parameters.SolutionBaseName }}'
-  condition: not(${{ parameters.PublishWebApp }})
+  condition: not(${{ parameters.Publish }})
   inputs:
     command: 'build'
     projects: '${{ parameters.SolutionRootFolder }}${{ parameters.SolutionBaseName }}/${{ parameters.SolutionBaseName }}.csproj'
@@ -43,7 +44,7 @@ steps:
 
 - task: ArchiveFiles@2
   displayName: 'Archive Application ${{ parameters.SolutionBaseName }}'
-  condition: not(${{ parameters.PublishWebApp }})
+  condition: not(${{ parameters.Publish }})
   inputs: 
     rootFolderOrFile: $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}
     archiveFile: $(build.artifactstagingdirectory)/Artifact/${{ parameters.SolutionBaseName }}/DeploymentPackages/${{ parameters.SolutionBaseName }}.zip
@@ -52,7 +53,7 @@ steps:
 # task to package a web app
 - task: DotNetCoreCLI@2
   displayName: 'dotnet publish application ${{ parameters.SolutionBaseName }}'
-  condition: ${{ parameters.PublishWebApp }}
+  condition: ${{ parameters.Publish }}
   inputs:
     command: 'publish'
     projects: '${{ parameters.SolutionRootFolder }}${{ parameters.SolutionBaseName }}/${{ parameters.SolutionBaseName }}.csproj'
