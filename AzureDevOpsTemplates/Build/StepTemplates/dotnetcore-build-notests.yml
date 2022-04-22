@@ -1,11 +1,11 @@
 # GitVersion: if a GitVersion config file is required this should be stored at the root of the repo.  If the file doesn't exist GitVersion defaults will be used - https://gitversion.readthedocs.io/en/latest/
 parameters:
   # must include final forward slash
-  SolutionRootFolder:  
-  SolutionBaseName: 
+  SolutionRootFolder:
+  SolutionBaseName:
   BuildPlatform: 'any cpu'
   BuildConfiguration: 'release'
-  DotNetCoreVersion: 
+  DotNetCoreVersion: ''
   GitVersionTargetPath: '/'
   IncludePreviewVersions: false
   Publish: false
@@ -17,7 +17,7 @@ steps:
   inputs:
     version: ${{ parameters.DotNetCoreVersion }}
     IncludePreviewVersions: ${{ parameters.IncludePreviewVersions }}
- 
+
 - task: gitversion/setup@0
   displayName: Install GitVersion
   inputs:
@@ -45,7 +45,7 @@ steps:
 - task: ArchiveFiles@2
   displayName: 'Archive Application ${{ parameters.SolutionBaseName }}'
   condition: not(${{ parameters.Publish }})
-  inputs: 
+  inputs:
     rootFolderOrFile: $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}
     archiveFile: $(build.artifactstagingdirectory)/Artifact/${{ parameters.SolutionBaseName }}/DeploymentPackages/${{ parameters.SolutionBaseName }}.zip
     includeRootFolder: false
