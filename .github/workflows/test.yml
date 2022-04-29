@@ -1,4 +1,4 @@
-name: Test
+name: TestAndTag
 
 on:
   push:
@@ -10,7 +10,7 @@ on:
     types: [opened, reopened, synchronize, labeled]
 
 jobs:
-  build:
+  test:
     name: Test
     runs-on: ubuntu-latest
     steps:
@@ -24,4 +24,26 @@ jobs:
       if: always()
       with:
         files: '**/TEST-*.xml'
+  tag:
+    name: Push Git Tag
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+    - name: Get latest tag
+      uses: actions-ecosystem/action-get-latest-tag@v1
+      id: get-latest-tag
+      with:
+        semver_only: true
+    - name: Bump tag
+      uses: actions-ecosystem/action-bump-semver@v1
+      id: bump-semver
+      with:
+        current_version: ${{ steps.get-latest-tag.outputs.tag }}
+        level: minor
+    - name: Push tag
+      uses: actions-ecosystem/action-push-tag@v1
+      if: ${{ success() && github.ref == 'refs/heads/main' }}
+      with:
+        tag: ${{ steps.bump-semver.outputs.new_version }}
       
