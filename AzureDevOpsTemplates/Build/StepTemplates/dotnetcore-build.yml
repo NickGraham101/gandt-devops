@@ -1,13 +1,15 @@
 # GitVersion: if a GitVersion config file is required this should be stored at the root of the repo.  If the file doesn't exist GitVersion defaults will be used - https://gitversion.readthedocs.io/en/latest/
 parameters:
-  SolutionRootFolder: '' # must include final forward slash
-  SolutionBaseName: ''
+  # must include final forward slash
+  SolutionRootFolder:
+  SolutionBaseName:
   BuildPlatform: 'any cpu'
   BuildConfiguration: 'release'
   DotNetCoreVersion: ''
   GitVersionTargetPath: '/'
   IncludePreviewVersions: false
   PublishWebApp: 'false'
+  TestRunSettingsFile : ''
   TestSuffix: Tests
 
 steps:
@@ -45,7 +47,7 @@ steps:
 - task: ArchiveFiles@2
   displayName: 'Archive Application ${{ parameters.SolutionBaseName }}'
   condition: not(${{ parameters.PublishWebApp }})
-  inputs: 
+  inputs:
     rootFolderOrFile: $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}/
     archiveFile: $(build.artifactstagingdirectory)/Artifact/${{ parameters.SolutionBaseName }}/DeploymentPackages/${{ parameters.SolutionBaseName }}.zip
     includeRootFolder: false
@@ -65,7 +67,10 @@ steps:
   inputs:
     command: test
     projects: '${{ parameters.SolutionRootFolder }}${{ parameters.SolutionBaseName }}.${{ parameters.TestSuffix }}/${{ parameters.SolutionBaseName }}.${{ parameters.TestSuffix }}.csproj'
-    arguments: '--configuration ${{ parameters.BuildConfiguration }} --collect:"XPlat Code Coverage"'
+    ${{ if eq(parameters.TestRunSettingsFile, '')  }}:
+      arguments: '--configuration ${{ parameters.BuildConfiguration }} --collect:"XPlat Code Coverage"'
+    ${{ if ne(parameters.TestRunSettingsFile, '')  }}:
+      arguments: '--configuration ${{ parameters.BuildConfiguration }} --collect:"XPlat Code Coverage" --settings ${{ parameters.TestRunSettingsFile }}'
 
 - task: PublishPipelineArtifact@1
   displayName: 'Publish Artifact: ${{ parameters.SolutionBaseName }}'

@@ -26,6 +26,7 @@ jobs:
         files: '**/TEST-*.xml'
   tag:
     name: Push Git Tag
+    needs: [test]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -46,4 +47,3 @@ jobs:
       if: ${{ success() && github.ref == 'refs/heads/main' }}
       with:
         tag: ${{ steps.bump-semver.outputs.new_version }}
-      
