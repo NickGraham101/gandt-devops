@@ -1,24 +1,41 @@
+##TO DO: rename this command and update all usage"
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true)]
     [ValidatePattern("[/w.]*\.$")]
     [String]$DomainName,
     [Parameter(Mandatory=$true, ParameterSetName="CName")]
+    [Parameter(Mandatory=$true, ParameterSetName="CNameAwsCredentials")]
     [String]$CNameRecordName,
     [Parameter(Mandatory=$true, ParameterSetName="CName")]
+    [Parameter(Mandatory=$true, ParameterSetName="CNameAwsCredentials")]
     [String]$CNameRecordValue,
     [Parameter(Mandatory=$true, ParameterSetName="ARecord")]
+    [Parameter(Mandatory=$true, ParameterSetName="ARecordAwsCredentials")]
     [AllowEmptyString()]
     [String]$HostName,
     [Parameter(Mandatory=$true, ParameterSetName="ARecord")]
+    [Parameter(Mandatory=$true, ParameterSetName="ARecordAwsCredentials")]
     [ipaddress]$IpAddress,
+    [Parameter(Mandatory=$true, ParameterSetName="ARecordAwsCredentials")]
+    [Parameter(Mandatory=$true, ParameterSetName="CNameAwsCredentials")]
+    [string]$AwsAccessKey,
+    [Parameter(Mandatory=$true, ParameterSetName="ARecordAwsCredentials")]
+    [Parameter(Mandatory=$true, ParameterSetName="CNameAwsCredentials")]
+    [string]$AwsSecretKey,
     [Parameter(Mandatory=$false)]
     [int]$TTL = 300
 )
 
+Import-Module AWSPowerShell.NetCore
+
+if ($PSCmdlet.ParameterSetName -match ".*AwsCredentials$") {
+    Set-AwsCredential -Scope Script -AccessKey $AwsAccessKey -SecretKey $AwsSecretKey
+}
+
 $HostedZone = Get-R53Hostedzones | Where-Object {$_.Name -eq $DomainName}
 
-if ($PSCmdlet.ParameterSetName -eq "ARecord") {
+if ($PSCmdlet.ParameterSetName -match "^ARecord.*") {
 
     if ($HostName -eq "") {
 
@@ -37,7 +54,7 @@ if ($PSCmdlet.ParameterSetName -eq "ARecord") {
     $RecordSetType = "A"
 
 }
-elseif ($PSCmdlet.ParameterSetName -eq "CName") {
+elseif ($PSCmdlet.ParameterSetName -match "^CName.*") {
 
     $RecordSetName = "$CNameRecordName.$DomainName"
     $RecordSetValue = $CNameRecordValue
@@ -65,7 +82,7 @@ $Params = @{
     ChangeBatch_Change=$Change
 }
 
-$Params
+Write-Verbose "Params:`n$($Params | Out-String)"
 
 try {
 
