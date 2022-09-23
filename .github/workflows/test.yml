@@ -16,6 +16,18 @@ jobs:
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+    - name: Setup PowerShell module cache
+      id: cacher
+      uses: actions/cache@v3
+      with:
+        path: "~/.local/share/powershell/Modules"
+        key: ${{ runner.os }}-AWSPowerShell.NetCore
+    - name: Install from PSGallery
+      if: steps.cacher.outputs.cache-hit != 'true'
+      shell: pwsh
+      run: |
+        Set-PSRepository PSGallery -InstallationPolicy Trusted
+        Install-Module AWSPowerShell.NetCore
     - name: Invoke Tests
       shell: pwsh
       run: Tests/Invoke-Tests.ps1
