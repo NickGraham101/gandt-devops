@@ -26,9 +26,13 @@ else {
         Write-Verbose "DockerImageTag set to 'Branch$($Matches[1])'"
 
     }
+    elseif ($BuildSourceBranchName -match "^DEP-\d{4}-\d{2}-\d{2}$") {
+        Write-Output "##vso[task.setvariable variable=DockerImageTag]Dependabot"
+        Write-Verbose "DockerImageTag set to 'Dependabot'"
+    }
     else {
 
-        throw "Branch name invalid, must match pattern '^(\d{3}|B\d{3})-\w*'"
+        throw "Branch name invalid, must match pattern '^(\d{3}|B\d{3})-\w*' or '^DEP-\d{4}-\d{2}-\d{2}$'"
 
     }
 
