@@ -1,0 +1,57 @@
+parameters:
+  ScheduleName:
+
+stages:
+- stage: Dependabot
+  condition: eq(variables['Build.Reason'], 'Schedule')
+  jobs:
+  - job: RunDependabot
+    steps:
+    - checkout: self
+    - checkout: gandt-azure-devops-tools
+    - task: PowerShell@2
+      displayName: 'Check Schedule Name'
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Output "##vso[task.setvariable variable=RunDependabot]$false"
+          Import-Module $(Build.SourcesDirectory)/gandt-azure-devops-tools/gandt-azure-devops-tools/gandt-azure-devops-tools.psm1
+          $Params = @{
+            Instance = "$(AzureDevOpsOrganizationName)"
+            PatToken = "$(System.AccessToken)"
+            ProjectId = "$(System.TeamProjectId)"
+            BuildId = "$(Build.BuildId)"
+          }
+          $Build = Get-Build @Params
+          if ($Build.ScheduleName -eq "${{ parameters.ScheduleName }}") {
+            Write-Output "Setting RunDependabot to true"
+            Write-Output "##vso[task.setvariable variable=RunDependabot]$true"
+          }
+    - task: CopyFiles@2
+      displayName: Copy dependabot.yml
+      condition: and(eq(variables['RunDependabot'], 'true'), succeeded())
+      inputs:
+        SourceFolder: $(Build.SourcesDirectory)/gandt-agent
+        Contents: '**/dependabot.yml'
+        TargetFolder: $(Build.SourcesDirectory)/
+    - task: dependabot@1
+      condition: and(eq(variables['RunDependabot'], 'true'), succeeded())
+      inputs:
+        directory: $(Build.SourcesDirectory)/gandt-agent
+        useConfigFile: true
+    - task: PowerShell@2
+      displayName: 'Merge Dependabot PRs'
+      condition: and(eq(variables['RunDependabot'], 'true'), succeeded())
+      inputs:
+        targetType: 'inline'
+        script: |
+          Import-Module $(Build.SourcesDirectory)/gandt-azure-devops-tools/gandt-azure-devops-tools/gandt-azure-devops-tools.psm1
+          $Params = @{
+            Instance = "$(AzureDevOpsOrganizationName)"
+            PatToken = "$(System.AccessToken)"
+            ProjectId = "$(System.TeamProjectId)"
+            RepositoryId = "$(Build.Repository.ID)"
+            MergedPullRequestBranchName = "DEP-$(Get-Date -format "yyyy-MM-dd")"
+            LabelsToInclude = @("dependencies")
+          }
+          Merge-MultiplePullRequest @Params -Verbose
