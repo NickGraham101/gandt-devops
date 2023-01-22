@@ -14,10 +14,11 @@ stages:
     - checkout: gandt-azure-devops-tools
     - task: PowerShell@2
       displayName: 'Check Schedule Name'
+      name: CheckScheduleName
       inputs:
         targetType: 'inline'
         script: |
-          Write-Output "##vso[task.setvariable variable=RunDependabot]$false"
+          Write-Output "##vso[task.setvariable variable=RunDependabot;isOutput=true]$false"
           Import-Module $(Build.SourcesDirectory)/gandt-azure-devops-tools/gandt-azure-devops-tools/gandt-azure-devops-tools.psm1
           $Params = @{
             Instance = "$(AzureDevOpsOrganizationName)"
@@ -28,23 +29,28 @@ stages:
           $Build = Get-Build @Params
           if ($Build.ScheduleName -eq "${{ parameters.ScheduleName }}") {
             Write-Output "Setting RunDependabot to true"
-            Write-Output "##vso[task.setvariable variable=RunDependabot]$true"
+            Write-Output "##vso[task.setvariable variable=RunDependabot;isOutput=true]$true"
           }
     - task: CopyFiles@2
       displayName: Copy dependabot.yml
-      condition: and(eq(variables['RunDependabot'], 'true'), succeeded())
+      condition: and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), succeeded())
       inputs:
         SourceFolder: ${{ parameters.SourceFolder }}
         Contents: '**/dependabot.yml'
         TargetFolder: $(Build.SourcesDirectory)/
     - task: dependabot@1
-      condition: and(eq(variables['RunDependabot'], 'true'), succeeded())
+      condition: and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), succeeded())
       inputs:
         directory: ${{ parameters.SourceFolder }}
         useConfigFile: true
+  - job: MergePRs
+    condition: and(eq(dependencies.RunDependabot.outputs['CheckScheduleName.RunDependabot'], 'true'), succeeded())
+    dependsOn: RunDependabot
+    steps:
+    - checkout: self
+    - checkout: gandt-azure-devops-tools
     - task: PowerShell@2
       displayName: 'Merge Dependabot PRs'
-      condition: and(eq(variables['RunDependabot'], 'true'), succeeded())
       inputs:
         targetType: 'inline'
         script: |
@@ -54,7 +60,8 @@ stages:
             PatToken = "$(System.AccessToken)"
             ProjectId = "$(System.TeamProjectId)"
             RepositoryId = "$(Build.Repository.ID)"
-            MergedPullRequestBranchName = "DEP-$(Get-Date -format "yyyy-MM-dd")"
+            MergedPullRequestBranchPrefix = "DEP"
+            MergedPullRequestBranchSuffix = $(Get-Date -format "yyyy-MM-dd")
             LabelsToInclude = @("dependencies")
           }
           Merge-MultiplePullRequest @Params -Verbose
