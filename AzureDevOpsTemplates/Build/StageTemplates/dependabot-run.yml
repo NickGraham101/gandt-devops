@@ -1,5 +1,6 @@
 parameters:
   ScheduleName:
+  SourceFolder:
 
 stages:
 - stage: Dependabot
@@ -33,13 +34,13 @@ stages:
       displayName: Copy dependabot.yml
       condition: and(eq(variables['RunDependabot'], 'true'), succeeded())
       inputs:
-        SourceFolder: $(Build.SourcesDirectory)/gandt-agent
+        SourceFolder: ${{ parameters.SourceFolder }}
         Contents: '**/dependabot.yml'
         TargetFolder: $(Build.SourcesDirectory)/
     - task: dependabot@1
       condition: and(eq(variables['RunDependabot'], 'true'), succeeded())
       inputs:
-        directory: $(Build.SourcesDirectory)/gandt-agent
+        directory: ${{ parameters.SourceFolder }}
         useConfigFile: true
     - task: PowerShell@2
       displayName: 'Merge Dependabot PRs'
