@@ -41,7 +41,6 @@ stages:
     - task: dependabot@1
       condition: and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), succeeded())
       inputs:
-        directory: ${{ parameters.SourceFolder }}
         useConfigFile: true
   - job: MergePRs
     condition: and(eq(dependencies.RunDependabot.outputs['CheckScheduleName.RunDependabot'], 'true'), succeeded())
