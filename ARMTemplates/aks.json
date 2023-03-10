@@ -121,7 +121,7 @@
                         "vnetSubnetID": "[variables('vnetSubnetID')]",
                         "type": "VirtualMachineScaleSets",
                         "mode": "[if(contains(parameters('agentPools')[0], 'mode'), parameters('agentPools')[0].mode, 'User')]",
-                        "storageProfile": "ManagedDisks"
+                        "osDiskType": "ManagedDisks"
                     }
                 ],
                 "addonProfiles": "[if(equals(parameters('logAnalyticsWorkspaceName'), ''), variables('addOnObject').noAddons, variables('addOnObject').omsAddon)]",
