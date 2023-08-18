@@ -12,6 +12,7 @@ stages:
   - job: RunDependabot
     steps:
     - checkout: self
+      persistCredentials: true
     - checkout: gandt-azure-devops-tools
     - task: PowerShell@2
       displayName: 'Check Schedule Name'
@@ -65,5 +66,7 @@ stages:
             MergedPullRequestBranchPrefix = "DEP"
             MergedPullRequestBranchSuffix = $(Get-Date -format "yyyy-MM-dd")
             LabelsToInclude = @("dependencies")
+            SourceCodeRootDirectory = "${{ parameters.SourceFolder }}"
+            UseGitHiresMerge = $true
           }
           Merge-MultiplePullRequest @Params -Verbose
