@@ -8,10 +8,10 @@ parameters:
 stages:
 - stage: Dependabot
   condition: eq(variables['Build.Reason'], 'Schedule')
-  pool:
-    vmImage: ubuntu-latest
   jobs:
   - job: RunDependabot
+    pool:
+      vmImage: ubuntu-latest
     steps:
     - checkout: self
       persistCredentials: true
