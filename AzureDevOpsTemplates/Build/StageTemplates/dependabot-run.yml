@@ -1,5 +1,6 @@
 parameters:
   ScheduleName:
+  SlackApiUrl:
   SourceFolder:
   EnableDebug: false
   GitEmail: ''
@@ -54,6 +55,7 @@ stages:
     steps:
     - checkout: self
     - checkout: gandt-azure-devops-tools
+    - checkout: gandt-devops
     - task: PowerShell@2
       displayName: 'Merge Dependabot PRs'
       inputs:
@@ -73,4 +75,16 @@ stages:
             SourceCodeRootDirectory = "${{ parameters.SourceFolder }}"
             UseGitHiresMerge = $true
           }
-          Merge-MultiplePullRequest @Params -Verbose
+          $PullRequest = Merge-MultiplePullRequest @Params -Verbose
+          if ($PullRequest) {
+            Write-Output "Setting PullRequestTitle to $($PullRequest.Title)"
+            Write-Output "##vso[task.setvariable variable=PullRequestTitle]$($PullRequest.Title)"
+          }
+    - task: PowerShell@2
+      condition: ne(variables['PullRequestTitle'], '')
+      displayName: Send Slack Message
+      inputs:
+        targetType: 'filePath'
+        filePath: gandt-devops/PSScripts/Send-SlackMessage.ps1
+        arguments: -Emoji ":man-lifting-weights:" -FallBackMessage "Dependabot PR $(PullRequestTitle) raised" -MarkdownMessage "Dependabot PR $(PullRequestTitle) raised" -MessageTitle "Weekly Dependabot Update" -SlackApiUrl "${{ parameters.SlackApiUrl }}"
+        pwsh: true
