@@ -43,7 +43,7 @@ stages:
         Contents: '**/dependabot.yml'
         TargetFolder: $(Build.SourcesDirectory)/
     - task: dependabot@1
-      condition: and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), succeeded())
+      condition: and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), le(variables['System.JobAttempt'], 1), succeeded())
       inputs:
         useConfigFile: true
         ${{ if eq(parameters.EnableDebug, true)  }}:
