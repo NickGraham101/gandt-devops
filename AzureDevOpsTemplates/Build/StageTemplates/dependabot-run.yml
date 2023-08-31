@@ -15,7 +15,6 @@ stages:
       vmImage: ubuntu-latest
     steps:
     - checkout: self
-      persistCredentials: true
     - checkout: gandt-azure-devops-tools
     - task: PowerShell@2
       displayName: 'Check Schedule Name'
@@ -54,6 +53,7 @@ stages:
     dependsOn: RunDependabot
     steps:
     - checkout: self
+      persistCredentials: true
     - checkout: gandt-azure-devops-tools
     - checkout: gandt-devops
     - task: PowerShell@2
