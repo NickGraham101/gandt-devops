@@ -75,7 +75,7 @@ stages:
             SourceCodeRootDirectory = "${{ parameters.SourceFolder }}"
             UseGitHiresMerge = $true
           }
-          $PullRequest = Merge-MultiplePullRequest @Params -Verbose
+          $PullRequest = Merge-MultiplePullRequest @Params
           if ($PullRequest) {
             Write-Output "Setting PullRequestTitle to $($PullRequest.Title)"
             Write-Output "##vso[task.setvariable variable=PullRequestTitle]$($PullRequest.Title)"
