@@ -1,0 +1,37 @@
+parameters:
+  AzureDevOpsOrganizationName:
+  DependsOn:
+  SlackApiUrl:
+
+stages:
+- stage: ReportScheduledRunResults
+  condition: and(always(), eq(variables['Build.Reason'], 'Schedule'))
+  dependsOn: ${{ parameters.DependsOn }}
+  jobs:
+  - job: SendRunResultsToSlack
+    steps:
+    - checkout: gandt-devops
+    - checkout: gandt-azure-devops-tools
+    - task: PowerShell@2
+      displayName: Check Build Status
+      inputs:
+        targetType: 'inline'
+        script: |
+          Import-Module $(Build.SourcesDirectory)/gandt-azure-devops-tools/gandt-azure-devops-tools/gandt-azure-devops-tools.psm1
+          $Timeline = Get-Timeline -Instance ${{ parameters.AzureDevOpsOrganizationName }} -PatToken $(System.AccessToken) -ProjectId $(System.TeamProject) -BuildId $(Build.BuildId)
+          if ($Timeline.FailedTasks) {
+            Write-Host "JobStatus: failed"
+            Write-Host "##vso[task.setvariable variable=JobStatus]failed"
+          }
+          else {
+            Write-Host "JobStatus: succceeded"
+            Write-Host "##vso[task.setvariable variable=JobStatus]succceeded"
+          }
+
+    - task: PowerShell@2
+      displayName: Send Slack Message
+      inputs:
+        targetType: 'filePath'
+        filePath: gandt-devops/PSScripts/Send-SlackMessage.ps1
+        arguments: -Emoji ":man-lifting-weights:" -FallBackMessage "$(Build.DefinitionName) pipeline run has completed, the result was '$(JobStatus)'." -MarkdownMessage "$(Build.DefinitionName) pipeline run has completed, the result was '$(JobStatus)' and is logged <$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)&view=ms.vss-test-web.build-test-results-tab|here>." -MessageTitle "Scheduled Run Result" -SlackApiUrl "${{ parameters.SlackApiUrl }}"
+        pwsh: true
