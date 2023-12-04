@@ -24,10 +24,14 @@ param(
     [Parameter(Mandatory=$true, ParameterSetName="CNameAwsCredentials")]
     [string]$AwsSecretKey,
     [Parameter(Mandatory=$false)]
+    [ValidateSet("AWSPowerShell", "AWSPowerShell.NetCore")]
+    [string]$AwsPowerShellVersion = "AWSPowerShell.NetCore",
+    [Parameter(Mandatory=$false)]
     [int]$TTL = 300
+
 )
 
-Import-Module AWSPowerShell.NetCore
+Import-Module $AwsPowerShellVersion
 
 if ($PSCmdlet.ParameterSetName -match ".*AwsCredentials$") {
     Set-AwsCredential -Scope Script -AccessKey $AwsAccessKey -SecretKey $AwsSecretKey
