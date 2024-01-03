@@ -17,11 +17,20 @@ param(
     [Parameter(Mandatory=$true, ParameterSetName="ARecord")]
     [Parameter(Mandatory=$true, ParameterSetName="ARecordAwsCredentials")]
     [ipaddress]$IpAddress,
+    [Parameter(Mandatory=$true, ParameterSetName="TxtRecord")]
+    [Parameter(Mandatory=$true, ParameterSetName="TxtRecordAwsCredentials")]
+    [AllowEmptyString()]
+    [String]$TxtRecordName,
+    [Parameter(Mandatory=$true, ParameterSetName="TxtRecord")]
+    [Parameter(Mandatory=$true, ParameterSetName="TxtRecordAwsCredentials")]
+    [String]$TxtRecordValue,
     [Parameter(Mandatory=$true, ParameterSetName="ARecordAwsCredentials")]
     [Parameter(Mandatory=$true, ParameterSetName="CNameAwsCredentials")]
+    [Parameter(Mandatory=$true, ParameterSetName="TxtRecordAwsCredentials")]
     [string]$AwsAccessKey,
     [Parameter(Mandatory=$true, ParameterSetName="ARecordAwsCredentials")]
     [Parameter(Mandatory=$true, ParameterSetName="CNameAwsCredentials")]
+    [Parameter(Mandatory=$true, ParameterSetName="TxtRecordAwsCredentials")]
     [string]$AwsSecretKey,
     [Parameter(Mandatory=$false)]
     [ValidateSet("AWSPowerShell", "AWSPowerShell.NetCore")]
@@ -63,6 +72,24 @@ elseif ($PSCmdlet.ParameterSetName -match "^CName.*") {
     $RecordSetName = "$CNameRecordName.$DomainName"
     $RecordSetValue = $CNameRecordValue
     $RecordSetType = "CNAME"
+
+}
+elseif ($PSCmdlet.ParameterSetName -match "^TxtRecord.*") {
+
+    if ($TxtRecordName -eq "") {
+
+        Write-Verbose "Creating record set for root record"
+        $RecordSetName = "$DomainName"
+
+    }
+    else {
+
+        Write-Verbose "Creating record set for host $TxtRecordName record"
+        $RecordSetName = "$TxtRecordName.$DomainName"
+
+    }
+    $RecordSetValue = $TxtRecordValue | ConvertTo-Json
+    $RecordSetType = "TXT"
 
 }
 else {
