@@ -1,4 +1,4 @@
-Describe "Set-Route53ARecord Unit Tests" -Tags @("Unit") {
+Describe "Set-Route53Record Unit Tests" -Tags @("Unit") {
 
     BeforeAll {
         Set-Location $PSScriptRoot/../PSScripts/
@@ -23,7 +23,7 @@ Describe "Set-Route53ARecord Unit Tests" -Tags @("Unit") {
                 CNameRecordValue = "foo.example.com"
             }
 
-            { .\Set-Route53ARecord.ps1 @TestParams } | Should -Not -Throw
+            { .\Set-Route53Record.ps1 @TestParams } | Should -Not -Throw
             Assert-MockCalled -CommandName Set-AWSCredential -Exactly -Times 0
             Assert-MockCalled -CommandName Edit-R53ResourceRecordSet -ParameterFilter { $ChangeBatch_Change.ResourceRecordSet.Type -eq "CNAME" } -Exactly -Times 1
         }
@@ -39,7 +39,7 @@ Describe "Set-Route53ARecord Unit Tests" -Tags @("Unit") {
                 AwsSecretKey = "not-a-real-secret"
             }
 
-            { .\Set-Route53ARecord.ps1 @TestParams } | Should -Not -Throw
+            { .\Set-Route53Record.ps1 @TestParams } | Should -Not -Throw
             Assert-MockCalled -CommandName Set-AWSCredential -Exactly -Times 1
             Assert-MockCalled -CommandName Edit-R53ResourceRecordSet -ParameterFilter { $ChangeBatch_Change.ResourceRecordSet.Type -eq "CNAME" } -Exactly -Times 1
         }
@@ -53,7 +53,7 @@ Describe "Set-Route53ARecord Unit Tests" -Tags @("Unit") {
                 IpAddress = "10.0.0.10"
             }
 
-            { .\Set-Route53ARecord.ps1 @TestParams } | Should -Not -Throw
+            { .\Set-Route53Record.ps1 @TestParams } | Should -Not -Throw
             Assert-MockCalled -CommandName Set-AWSCredential -Exactly -Times 0
             Assert-MockCalled -CommandName Edit-R53ResourceRecordSet -ParameterFilter { $ChangeBatch_Change.ResourceRecordSet.Type -eq "A" } -Exactly -Times 1
         }
@@ -69,7 +69,7 @@ Describe "Set-Route53ARecord Unit Tests" -Tags @("Unit") {
                 AwsSecretKey = "not-a-real-secret"
             }
 
-            { .\Set-Route53ARecord.ps1 @TestParams } | Should -Not -Throw
+            { .\Set-Route53Record.ps1 @TestParams } | Should -Not -Throw
             Assert-MockCalled -CommandName Set-AWSCredential -Exactly -Times 1
             Assert-MockCalled -CommandName Edit-R53ResourceRecordSet -ParameterFilter { $ChangeBatch_Change.ResourceRecordSet.Type -eq "A" } -Exactly -Times 1
         }
