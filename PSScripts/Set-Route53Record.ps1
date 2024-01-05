@@ -107,9 +107,14 @@ $Change.ResourceRecordSet.Type = $RecordSetType
 $Change.ResourceRecordSet.TTL = $TTL
 $Change.ResourceRecordSet.ResourceRecords.Add(@{Value=$RecordSetValue})
 
+$ChangeComment = "This change batch updates the $RecordSetType record for $RecordSetName to $RecordSetValue"
+if ($ChangeComment.Length -gt 256) {
+    $ChangeComment = "$($ChangeComment.Substring(0,253))..."
+}
+
 $Params = @{
     HostedZoneId=$HostedZone.Id
-    ChangeBatch_Comment="This change batch updates the $RecordSetType record for $RecordSetName to $RecordSetValue"
+    ChangeBatch_Comment=$ChangeComment
     ChangeBatch_Change=$Change
 }
 
