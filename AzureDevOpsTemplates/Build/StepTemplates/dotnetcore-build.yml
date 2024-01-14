@@ -43,7 +43,7 @@ steps:
     command: 'build'
     projects: '${{ parameters.SolutionRootFolder }}${{ parameters.SolutionBaseName }}/${{ parameters.SolutionBaseName }}.csproj'
     ${{ if ne(parameters.NuGetConfigFile, '')}}:
-      arguments: '-o $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}/ -c ${{ parameters.BuildConfiguration }}' --source ${{ parameters.NuGetConfigFile }}
+      arguments: '-o $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}/ -c ${{ parameters.BuildConfiguration }} --source ${{ parameters.NuGetConfigFile }}'
     ${{ else }}:
       arguments: '-o $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}/ -c ${{ parameters.BuildConfiguration }}'
 
