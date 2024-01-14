@@ -8,6 +8,7 @@ parameters:
   DotNetCoreVersion: ''
   GitVersionTargetPath: '/'
   IncludePreviewVersions: false
+  NuGetConfigFile: ''
   PublishWebApp: 'false'
   TestRunSettingsFile : ''
   TestSuffix: Tests
@@ -35,14 +36,16 @@ steps:
     ${{ if ne(parameters.GitVersionTargetPath, '/')  }}:
       configFilePath: ${{ parameters.GitVersionTargetPath }}/GitVersion.yml
 
-# tasks to package a function app
 - task: DotNetCoreCLI@2
   displayName: 'Build - dotnet build application ${{ parameters.SolutionBaseName }}'
   condition: not(${{ parameters.PublishWebApp }})
   inputs:
     command: 'build'
     projects: '${{ parameters.SolutionRootFolder }}${{ parameters.SolutionBaseName }}/${{ parameters.SolutionBaseName }}.csproj'
-    arguments: '-o $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}/ -c ${{ parameters.BuildConfiguration }}'
+    ${{ if ne(parameters.NuGetConfigFile, '')}}:
+      arguments: '-o $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}/ -c ${{ parameters.BuildConfiguration }}' --source ${{ parameters.NuGetConfigFile }}
+    ${{ else }}:
+      arguments: '-o $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}/ -c ${{ parameters.BuildConfiguration }}'
 
 - task: ArchiveFiles@2
   displayName: 'Archive Application ${{ parameters.SolutionBaseName }}'
