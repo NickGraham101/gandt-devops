@@ -42,11 +42,9 @@ steps:
   inputs:
     command: 'build'
     projects: '${{ parameters.SolutionRootFolder }}${{ parameters.SolutionBaseName }}/${{ parameters.SolutionBaseName }}.csproj'
-    ${{ if ne(parameters.NuGetConfigFile, '')}}:
-      arguments: '-o $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}/ -c ${{ parameters.BuildConfiguration }} --source ${{ parameters.NuGetConfigFile }}'
-    ${{ else }}:
-      arguments: '-o $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}/ -c ${{ parameters.BuildConfiguration }}'
-
+    arguments: '-o $(build.artifactstagingdirectory)/Build/${{ parameters.SolutionBaseName }}/ -c ${{ parameters.BuildConfiguration }}'
+    feedsToUse: 'config'
+    nugetConfigPath: ${{ parameters.NuGetConfigFile }}
 - task: ArchiveFiles@2
   displayName: 'Archive Application ${{ parameters.SolutionBaseName }}'
   condition: not(${{ parameters.PublishWebApp }})
