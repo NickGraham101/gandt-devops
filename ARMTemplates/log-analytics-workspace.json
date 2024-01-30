@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "dailyQuota": {
+      "type": "string",
+      "metadata": {
+        "description": "Enter daily quota in GB."
+      }
+    },
+    "retentionDays": {
+      "type": "int",
+      "defaultValue": 90
+    },
+    "sku": {
+      "type": "string",
+      "defaultValue": "Standalone"
+    },
+    "workspaceName": {
+      "type": "string"
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2022-10-01",
+      "name": "[parameters('workspaceName')]",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "features": {
+          "enableLogAccessUsingOnlyResourcePermissions": true
+        },
+        "publicNetworkAccessForIngestion": false,
+        "publicNetworkAccessForQuery": false,
+        "retentionInDays": "[parameters('retentionDays')]",
+        "sku": {
+          "name": "[parameters('sku')]"
+        },
+        "workspaceCapping": {
+          "dailyQuotaGb": "[parameters('dailyQuota')]"
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "workspaceId": {
+      "type": "string",
+      "value": "[resourceId('Microsoft.OperationalInsights/workspaces/', parameters('workspaceName'))]"
+    }
+  }
+}
