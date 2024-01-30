@@ -1,5 +1,5 @@
 {
-    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
     "contentVersion": "1.0.0.0",
     "parameters": {
         "appInsightsName": {
@@ -36,6 +36,9 @@
             "metadata": {
                 "description": "Enter the % value of daily quota after which warning mail to be sent."
             }
+        },
+        "workspaceResourceId": {
+            "type": "string"
         }
     },
     "variables": {
@@ -53,7 +56,8 @@
             "kind": "web",
             "tags": "[if(equals(parameters('attachedService'),''), variables('withoutAttachedService'), variables('withAttachedService'))]",
             "properties": {
-                "Application_Type": "web"
+                "Application_Type": "web",
+                "WorkspaceResourceId": "[parameters('workspaceResourceId')]"
             }
         },
         {
