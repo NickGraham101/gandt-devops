@@ -5,10 +5,11 @@ parameters:
   EnableDebug: false
   GitEmail: ''
   GitUsername: ''
+  RunManually: false
 
 stages:
 - stage: Dependabot
-  condition: eq(variables['Build.Reason'], 'Schedule')
+  condition: or(eq(variables['Build.Reason'], 'Schedule'), ${{ parameters.RunManually }})
   jobs:
   - job: RunDependabot
     pool:
@@ -37,13 +38,13 @@ stages:
           }
     - task: CopyFiles@2
       displayName: Copy dependabot.yml
-      condition: and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), succeeded())
+      condition: or(and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), succeeded()), ${{ parameters.RunManually }})
       inputs:
         SourceFolder: ${{ parameters.SourceFolder }}
         Contents: '**/dependabot.yml'
         TargetFolder: $(Build.SourcesDirectory)/
     - task: dependabot@1
-      condition: and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), le(variables['System.JobAttempt'], 1), succeeded())
+      condition: or(and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), le(variables['System.JobAttempt'], 1), succeeded()), ${{ parameters.RunManually }})
       inputs:
         useConfigFile: true
         ${{ if eq(parameters.EnableDebug, true)  }}:
