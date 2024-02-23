@@ -5,10 +5,11 @@ parameters:
   EnableDebug: false
   GitEmail: ''
   GitUsername: ''
+  RunManually: false
 
 stages:
 - stage: Dependabot
-  condition: eq(variables['Build.Reason'], 'Schedule')
+  condition: or(eq(variables['Build.Reason'], 'Schedule'), parameters.RunManually)
   jobs:
   - job: RunDependabot
     pool:
