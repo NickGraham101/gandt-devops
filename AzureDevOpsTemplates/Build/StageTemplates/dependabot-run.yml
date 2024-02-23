@@ -9,7 +9,7 @@ parameters:
 
 stages:
 - stage: Dependabot
-  condition: or(eq(variables['Build.Reason'], 'Schedule'), parameters.RunManually)
+  condition: or(eq(variables['Build.Reason'], 'Schedule'), ${{ parameters.RunManually }})
   jobs:
   - job: RunDependabot
     pool:
