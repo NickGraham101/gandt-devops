@@ -2,6 +2,7 @@ parameters:
   ScheduleName:
   SlackApiUrl:
   SourceFolder:
+  DependabotImageTag: ''
   EnableDebug: false
   GitEmail: ''
   GitUsername: ''
@@ -47,6 +48,8 @@ stages:
       condition: or(and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), le(variables['System.JobAttempt'], 1), succeeded()), ${{ parameters.RunManually }})
       inputs:
         useConfigFile: true
+        ${{ if gt(length(parameters.DependabotImageTag), 0) }}:
+          dockerImageTag: ${{ parameters.DependabotImageTag }}
         ${{ if eq(parameters.EnableDebug, true)  }}:
           extraEnvironmentVariables: 'EXCON_DEBUG=1'
   - job: MergePRs
