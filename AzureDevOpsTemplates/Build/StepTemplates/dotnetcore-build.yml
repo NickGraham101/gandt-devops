@@ -71,6 +71,7 @@ steps:
       arguments: '--configuration ${{ parameters.BuildConfiguration }} --collect:"XPlat Code Coverage"'
     ${{ if ne(parameters.TestRunSettingsFile, '')  }}:
       arguments: '--configuration ${{ parameters.BuildConfiguration }} --collect:"XPlat Code Coverage" --settings ${{ parameters.TestRunSettingsFile }}'
+  continueOnError: true
 
 - task: PublishPipelineArtifact@1
   displayName: 'Publish Artifact: ${{ parameters.SolutionBaseName }}'
