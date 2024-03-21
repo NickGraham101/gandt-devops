@@ -6,11 +6,12 @@ parameters:
   EnableDebug: false
   GitEmail: ''
   GitUsername: ''
-  RunManually: false
+  RunDependabotManually: false
+  RunMergePRManually: false
 
 stages:
 - stage: Dependabot
-  condition: or(eq(variables['Build.Reason'], 'Schedule'), ${{ parameters.RunManually }})
+  condition: or(eq(variables['Build.Reason'], 'Schedule'), ${{ parameters.RunDependabotManually }}, ${{ parameters.RunMergePRManually }})
   jobs:
   - job: RunDependabot
     pool:
@@ -39,13 +40,13 @@ stages:
           }
     - task: CopyFiles@2
       displayName: Copy dependabot.yml
-      condition: or(and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), succeeded()), ${{ parameters.RunManually }})
+      condition: or(and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), succeeded()), ${{ parameters.RunDependabotManually }})
       inputs:
         SourceFolder: ${{ parameters.SourceFolder }}
         Contents: '**/dependabot.yml'
         TargetFolder: $(Build.SourcesDirectory)/
     - task: dependabot@1
-      condition: or(and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), le(variables['System.JobAttempt'], 1), succeeded()), ${{ parameters.RunManually }})
+      condition: or(and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), le(variables['System.JobAttempt'], 1), succeeded()), ${{ parameters.RunDependabotManually }})
       inputs:
         useConfigFile: true
         ${{ if gt(length(parameters.DependabotImageTag), 0) }}:
@@ -53,8 +54,9 @@ stages:
         ${{ if eq(parameters.EnableDebug, true)  }}:
           extraEnvironmentVariables: 'EXCON_DEBUG=1'
   - job: MergePRs
-    condition: and(or(eq(dependencies.RunDependabot.outputs['CheckScheduleName.RunDependabot'], 'true'), ${{ parameters.RunManually }}), succeeded())
-    dependsOn: RunDependabot
+    condition: or(and(eq(dependencies.RunDependabot.outputs['CheckScheduleName.RunDependabot'], 'true'), succeeded()), ${{ parameters.RunMergePRManually }})
+    ${{ if parameters.RunMergePRManually }}:
+      dependsOn: []
     timeoutInMinutes: 0
     steps:
     - checkout: self
