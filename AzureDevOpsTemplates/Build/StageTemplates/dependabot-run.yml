@@ -36,7 +36,7 @@ stages:
           $Build = Get-Build @Params
           if ($Build.ScheduleName -eq "${{ parameters.ScheduleName }}") {
             Write-Output "Setting RunDependabot to true"
-            Write-Output "##vso[task.setvariable variable=RunDependabot;isOutput=true]$true"
+            Write-Output "##vso[task.setvariable variable=RunDependabot;isOutput=true]true"
           }
     - task: CopyFiles@2
       displayName: Copy dependabot.yml
