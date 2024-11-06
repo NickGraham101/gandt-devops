@@ -21,7 +21,7 @@ steps:
 - task: gitversion/setup@3.0.0
   displayName: Install GitVersion
   inputs:
-    versionSpec: 6.x
+    versionSpec: 5.x
 
 - task: gitversion/execute@3.0.0
   displayName: gitversion/execute
