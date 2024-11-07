@@ -2,8 +2,6 @@ parameters:
   ScheduleName:
   SlackApiUrl:
   SourceFolder:
-  DependabotImageTag: ''
-  EnableDebug: false
   GitEmail: ''
   GitUsername: ''
   RunDependabotManually: false
@@ -45,14 +43,10 @@ stages:
         SourceFolder: ${{ parameters.SourceFolder }}
         Contents: '**/dependabot.yml'
         TargetFolder: $(Build.SourcesDirectory)/
-    - task: dependabot@1
+    - task: dependabot@2
       condition: or(and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), le(variables['System.JobAttempt'], 1), succeeded()), ${{ parameters.RunDependabotManually }})
       inputs:
         useConfigFile: true
-        ${{ if gt(length(parameters.DependabotImageTag), 0) }}:
-          dockerImageTag: ${{ parameters.DependabotImageTag }}
-        ${{ if eq(parameters.EnableDebug, true)  }}:
-          extraEnvironmentVariables: 'EXCON_DEBUG=1'
   - job: MergePRs
     condition: or(and(eq(variables['RunDependabot'], 'true'), succeeded()), ${{ parameters.RunMergePRManually }})
     variables:
