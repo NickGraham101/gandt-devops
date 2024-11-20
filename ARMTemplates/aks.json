@@ -61,10 +61,6 @@
                 "description": "An object containing agentNodeCount, agentPoolName and agentVMSize properties"
             }
         },
-        "dockerBridgeCidr": {
-            "type": "string",
-            "defaultValue": "172.17.0.1/16"
-        },
         "logAnalyticsResourceGroupName": {
             "type": "string",
             "defaultValue": "",
@@ -137,7 +133,6 @@
                     "serviceCidr": "[parameters('serviceCidr')]",
                     "dnsServiceIP": "[parameters('dnsServiceIp')]",
                     "podCidr": "[parameters('podCidr')]",
-                    "dockerBridgeCidr": "[parameters('dockerBridgeCidr')]",
                     "loadBalancerSku": "basic"
                 },
                 "servicePrincipalProfile": {}
