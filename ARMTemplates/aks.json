@@ -141,7 +141,6 @@
         {
             "apiVersion": "2024-05-01",
             "type": "Microsoft.ContainerService/managedClusters/agentPools",
-            "location": "[resourceGroup().location]",
             "name": "[concat(parameters('clusterName'), '/', parameters('agentPools')[copyIndex('agentPoolProfiles')].agentPoolName)]",
             "properties": {
                 "count": "[parameters('agentPools')[copyIndex('agentPoolProfiles')].agentNodeCount]",
