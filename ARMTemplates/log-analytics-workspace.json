@@ -23,7 +23,7 @@
   "resources": [
     {
       "type": "Microsoft.OperationalInsights/workspaces",
-      "apiVersion": "2022-10-01",
+      "apiVersion": "2023-09-01",
       "name": "[parameters('workspaceName')]",
       "location": "[resourceGroup().location]",
       "properties": {

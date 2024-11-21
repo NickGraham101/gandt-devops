@@ -61,10 +61,6 @@
                 "description": "An object containing agentNodeCount, agentPoolName and agentVMSize properties"
             }
         },
-        "dockerBridgeCidr": {
-            "type": "string",
-            "defaultValue": "172.17.0.1/16"
-        },
         "logAnalyticsResourceGroupName": {
             "type": "string",
             "defaultValue": "",
@@ -102,7 +98,7 @@
     },
     "resources": [
         {
-            "apiVersion": "2023-01-01",
+            "apiVersion": "2024-05-01",
             "type": "Microsoft.ContainerService/managedClusters",
             "location": "[resourceGroup().location]",
             "name": "[parameters('clusterName')]",
@@ -137,16 +133,14 @@
                     "serviceCidr": "[parameters('serviceCidr')]",
                     "dnsServiceIP": "[parameters('dnsServiceIp')]",
                     "podCidr": "[parameters('podCidr')]",
-                    "dockerBridgeCidr": "[parameters('dockerBridgeCidr')]",
                     "loadBalancerSku": "basic"
                 },
                 "servicePrincipalProfile": {}
             }
         },
         {
-            "apiVersion": "2023-01-01",
+            "apiVersion": "2024-05-01",
             "type": "Microsoft.ContainerService/managedClusters/agentPools",
-            "location": "[resourceGroup().location]",
             "name": "[concat(parameters('clusterName'), '/', parameters('agentPools')[copyIndex('agentPoolProfiles')].agentPoolName)]",
             "properties": {
                 "count": "[parameters('agentPools')[copyIndex('agentPoolProfiles')].agentNodeCount]",
