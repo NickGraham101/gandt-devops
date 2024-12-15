@@ -54,7 +54,9 @@ stages:
         ${{ if eq(parameters.EnableDebug, true)  }}:
           extraEnvironmentVariables: 'EXCON_DEBUG=1'
   - job: MergePRs
-    condition: or(and(eq(dependencies.RunDependabot.outputs['CheckScheduleName.RunDependabot'], 'true'), succeeded()), ${{ parameters.RunMergePRManually }})
+    condition: or(and(eq(variables['RunDependabot'], 'true'), succeeded()), ${{ parameters.RunMergePRManually }})
+    variables:
+      RunDependabot: $[ dependencies.RunDependabot.outputs['CheckScheduleName.RunDependabot'] ]
     ${{ if and(not(parameters.RunDependabotManually), parameters.RunMergePRManually) }}:
       dependsOn: []
     ${{ else }}:
