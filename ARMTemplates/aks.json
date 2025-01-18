@@ -133,7 +133,7 @@
                     "serviceCidr": "[parameters('serviceCidr')]",
                     "dnsServiceIP": "[parameters('dnsServiceIp')]",
                     "podCidr": "[parameters('podCidr')]",
-                    "loadBalancerSku": "basic"
+                    "loadBalancerSku": "standard"
                 },
                 "servicePrincipalProfile": {}
             }
