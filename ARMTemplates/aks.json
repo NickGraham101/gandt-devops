@@ -26,6 +26,22 @@
                 "description": "The name of the resource group used for nodes"
             }
         },
+        "osDiskSizeGB": {
+            "type": "int",
+            "metadata": {
+                "description": "The disk size in GB for OS disk"
+            }
+        },
+        "osDiskType": {
+            "type": "string",
+            "metadata": {
+                "description": "The type of OS disk"
+            },
+            "allowedValues": [
+                "Managed",
+                "Ephemeral"
+            ]
+        },
         "serviceCidr": {
             "type": "string"
         },
@@ -118,7 +134,8 @@
                         "type": "VirtualMachineScaleSets",
                         "mode": "[if(contains(parameters('agentPools')[0], 'mode'), parameters('agentPools')[0].mode, 'User')]",
                         "orchestratorVersion": "[parameters('kubernetesVersion')]",
-                        "osDiskType": "ManagedDisks"
+                        "osDiskType": "[parameters('osDiskType')]",
+                        "osDiskSizeGB": "[parameters('osDiskSizeGB')]"
                     }
                 ],
                 "addonProfiles": "[if(equals(parameters('logAnalyticsWorkspaceName'), ''), variables('addOnObject').noAddons, variables('addOnObject').omsAddon)]",
@@ -150,7 +167,8 @@
                 "type": "VirtualMachineScaleSets",
                 "mode": "[if(contains(parameters('agentPools')[copyIndex('agentPoolProfiles')], 'mode'), parameters('agentPools')[copyIndex('agentPoolProfiles')].mode, 'User')]",
                 "orchestratorVersion": "[parameters('kubernetesVersion')]",
-                "osDiskType": "ManagedDisks"
+                "osDiskType": "[parameters('osDiskType')]",
+                "osDiskSizeGB": "[parameters('osDiskSizeGB')]"
             },
             "copy": {
                 "name": "agentPoolProfiles",
