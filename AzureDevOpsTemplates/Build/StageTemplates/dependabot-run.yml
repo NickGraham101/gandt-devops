@@ -2,8 +2,9 @@ parameters:
   ScheduleName:
   SlackApiUrl:
   SourceFolder:
-  GitEmail: ''
-  GitUsername: ''
+  GitEmail:
+  GitUsername:
+  DependabotCliVersion: 'latest'
   RunDependabotManually: false
   RunMergePRManually: false
 
@@ -46,7 +47,7 @@ stages:
     - task: dependabot@2
       condition: or(and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), le(variables['System.JobAttempt'], 1), succeeded()), ${{ parameters.RunDependabotManually }})
       inputs:
-        useConfigFile: true
+        dependabotCliPackage  : ${{ format('github.com/dependabot/cli/cmd/dependabot@{0}',  parameters.DependabotCliVersion ) }}
   - job: MergePRs
     condition: or(and(eq(variables['RunDependabot'], 'true'), succeeded()), ${{ parameters.RunMergePRManually }})
     variables:
