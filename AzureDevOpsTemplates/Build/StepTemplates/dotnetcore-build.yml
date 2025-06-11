@@ -10,6 +10,7 @@ parameters:
   IncludePreviewVersions: false
   PublishWebApp: 'false'
   TestRunSettingsFile : ''
+  TestsRootFolder: ''
   TestSuffix: Tests
 
 steps:
@@ -66,7 +67,7 @@ steps:
   displayName: 'Test - dotnet test application ${{ parameters.SolutionBaseName }}'
   inputs:
     command: test
-    projects: '${{ parameters.SolutionRootFolder }}${{ parameters.SolutionBaseName }}.${{ parameters.TestSuffix }}/${{ parameters.SolutionBaseName }}.${{ parameters.TestSuffix }}.csproj'
+    projects: '${{ coalesce(parameters.TestsRootFolder, parameters.SolutionRootFolder) }}${{ parameters.SolutionBaseName }}.${{ parameters.TestSuffix }}/${{ parameters.SolutionBaseName }}.${{ parameters.TestSuffix }}.csproj'
     ${{ if eq(parameters.TestRunSettingsFile, '')  }}:
       arguments: '--configuration ${{ parameters.BuildConfiguration }} --collect:"XPlat Code Coverage"'
     ${{ if ne(parameters.TestRunSettingsFile, '')  }}:
