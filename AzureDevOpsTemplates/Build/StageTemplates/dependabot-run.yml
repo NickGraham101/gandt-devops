@@ -5,6 +5,7 @@ parameters:
   GitEmail:
   GitUsername:
   DependabotCliVersion: 'latest'
+  DependabotExperiments: 'none'
   RunDependabotManually: false
   RunMergePRManually: false
 
@@ -47,7 +48,8 @@ stages:
     - task: dependabot@2
       condition: or(and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), le(variables['System.JobAttempt'], 1), succeeded()), ${{ parameters.RunDependabotManually }})
       inputs:
-        dependabotCliPackage  : ${{ format('github.com/dependabot/cli/cmd/dependabot@{0}',  parameters.DependabotCliVersion ) }}
+        dependabotCliPackage: ${{ format('github.com/dependabot/cli/cmd/dependabot@{0}',  parameters.DependabotCliVersion ) }}
+        experiments: ${{ parameters.DependabotExperiments }}
   - job: MergePRs
     condition: or(and(eq(variables['RunDependabot'], 'true'), succeeded()), ${{ parameters.RunMergePRManually }})
     variables:
