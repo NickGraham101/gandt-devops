@@ -105,6 +105,7 @@ $Change.ResourceRecordSet = New-Object Amazon.Route53.Model.ResourceRecordSet
 $Change.ResourceRecordSet.Name = $RecordSetName
 $Change.ResourceRecordSet.Type = $RecordSetType
 $Change.ResourceRecordSet.TTL = $TTL
+$Change.ResourceRecordSet.ResourceRecords = @()
 $Change.ResourceRecordSet.ResourceRecords.Add(@{Value=$RecordSetValue})
 
 $ChangeComment = "This change batch updates the $RecordSetType record for $RecordSetName to $RecordSetValue"
