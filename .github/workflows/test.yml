@@ -8,6 +8,7 @@ on:
     branches:
       - main
     types: [opened, reopened, synchronize, labeled]
+  workflow_dispatch:
 
 jobs:
   test:
@@ -27,7 +28,7 @@ jobs:
       shell: pwsh
       run: |
         Set-PSRepository PSGallery -InstallationPolicy Trusted
-        Install-Module AWSPowerShell.NetCore
+        Install-Module AWSPowerShell.NetCore -Verbose
     - name: Invoke Tests
       shell: pwsh
       run: Tests/Invoke-Tests.ps1
