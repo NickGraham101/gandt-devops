@@ -6,7 +6,7 @@ param(
     [String]$BuildSourceBranchName
 )
 
-if ($BuildSourceBranchName -eq "master") {
+if ($BuildSourceBranchName -match "^(main|master)$") {
 
     Write-Output "##vso[task.setvariable variable=DockerImageTag]$BuildBuildNumber"
     Write-Verbose "DockerImageTag set to '$BuildBuildNumber'"
