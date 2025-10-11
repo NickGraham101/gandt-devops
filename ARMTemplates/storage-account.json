@@ -63,6 +63,7 @@
                     "keySource": "Microsoft.Storage"
                 },
                 "accessTier": "[parameters('accessTier')]",
+                "minimumTlsVersion": "TLS1_2",
                 "supportsHttpsTrafficOnly": true
             }
         }
