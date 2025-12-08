@@ -1,0 +1,29 @@
+parameters:
+  AzureSubscription:
+  EnvironmentVariables:
+  ProjectName:
+  PulumiProjectRoot:
+  PulumuiStateLocation:
+  Stack:
+
+steps:
+- task: Pulumi@1
+  displayName: Pulumi Install
+  inputs:
+    azureSubscription: ${{ parameters.AzureSubscription }}
+    command: install
+    cwd: ${{ parameters.PulumiProjectRoot }}
+    stack: organization/${{ parameters.ProjectName }}/${{ parameters.Stack }}
+    loginArgs: ${{ parameters.PulumuiStateLocation }}
+- task: Pulumi@1
+  displayName: Pulumi Up
+  inputs:
+    azureSubscription: ${{ parameters.AzureSubscription }}
+    command: up
+    args: "--refresh --skip-preview --yes"
+    cwd: ${{ parameters.PulumiProjectRoot }}
+    stack: organization/${{ parameters.ProjectName }}/${{ parameters.Stack }}
+    loginArgs: ${{ parameters.PulumuiStateLocation }}
+  env:
+    ${{ each EnvVar in parameters.EnvironmentVariables }}:
+      ${{ EnvVar.key }}: ${{ EnvVar.value }}
