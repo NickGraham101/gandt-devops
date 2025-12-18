@@ -4,6 +4,7 @@ parameters:
   SourceFolder:
   GitEmail:
   GitUsername:
+  DefaultBranchName: 'refs/heads/master'
   DependabotCliVersion: 'latest'
   DependabotExperiments: 'none'
   RunDependabotManually: false
@@ -75,6 +76,7 @@ stages:
             PatToken = "$(System.AccessToken)"
             ProjectId = "$(System.TeamProjectId)"
             RepositoryId = "$(Build.Repository.ID)"
+            DefaultBranchName = "${{ parameters.DefaultBranchName }}"
             MergedPullRequestBranchPrefix = "DEP"
             MergedPullRequestBranchSuffix = $(Get-Date -format "yyyy-MM-dd")
             LabelsToInclude = @("dependencies")
