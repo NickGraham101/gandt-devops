@@ -5,6 +5,8 @@ param(
     [Parameter(Mandatory = $true)]
     [string]$AzureDevOpsOrganizationName,
     [Parameter(Mandatory = $true)]
+    [string]$BaseBranchName,
+    [Parameter(Mandatory = $true)]
     [string]$ModulePath,
     [Parameter(Mandatory = $true)]
     [string]$RepositoryId,
@@ -28,7 +30,7 @@ $SharedParams = @{
   PatToken = $AccessToken
   ProjectId = $TeamProjectId
   RepositoryId = $RepositoryId
-  BaseBranch = "master"
+  BaseBranch = "$BaseBranchName"
   TargetBranch = "$SourceBranchName"
   MinFolderPathSegmentLength = 2
   MaxFolderPathSegmentLength = 4
