@@ -18,6 +18,16 @@
     },
     "workspaceName": {
       "type": "string"
+    },
+    "publicNetworkAccessForIngestion": {
+      "type": "string",
+      "defaultValue": "false",
+      "allowedValues": [ "Enabled", "false" ]
+    },
+    "publicNetworkAccessForQuery": {
+      "type": "string",
+      "defaultValue": "false",
+      "allowedValues": [ "Enabled", "false" ]
     }
   },
   "resources": [
@@ -30,8 +40,8 @@
         "features": {
           "enableLogAccessUsingOnlyResourcePermissions": true
         },
-        "publicNetworkAccessForIngestion": false,
-        "publicNetworkAccessForQuery": false,
+        "publicNetworkAccessForIngestion": "[parameters('publicNetworkAccessForIngestion')]",
+        "publicNetworkAccessForQuery": "[parameters('publicNetworkAccessForQuery')]",
         "retentionInDays": "[parameters('retentionDays')]",
         "sku": {
           "name": "[parameters('sku')]"
