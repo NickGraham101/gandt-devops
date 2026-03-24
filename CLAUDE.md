@@ -2,6 +2,15 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Repository
+
+**Type:** Public (GitHub)
+**Remote:** `https://github.com/NickGraham101/gandt-devops`
+
+**Branch naming:** UpperCamelCase with no separators (e.g. `MyFeatureBranch`).
+
+**Worktrees:** Create in `../gandt-devops-worktrees/<branch-name>/` — never inside this directory.
+
 ## Repository Purpose
 
 Shared DevOps toolkit providing reusable ARM templates, Azure DevOps pipeline templates, and PowerShell scripts for CI/CD pipelines. Consumed by downstream pipelines via multi-repo checkout and pinned by tag — update the pinned tag in consumer pipelines when releasing new versions.
