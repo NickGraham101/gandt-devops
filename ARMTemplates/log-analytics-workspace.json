@@ -28,6 +28,15 @@
       "type": "string",
       "defaultValue": "false",
       "allowedValues": [ "Enabled", "false" ]
+    },
+    "defaultDataCollectionRuleResourceId": {
+      "type": "string",
+      "defaultValue": ""
+    }
+  },
+  "variables": {
+    "features": {
+      "enableLogAccessUsingOnlyResourcePermissions": true
     }
   },
   "resources": [
@@ -37,9 +46,8 @@
       "name": "[parameters('workspaceName')]",
       "location": "[resourceGroup().location]",
       "properties": {
-        "features": {
-          "enableLogAccessUsingOnlyResourcePermissions": true
-        },
+        "defaultDataCollectionRuleResourceId": "[if(equals(parameters('defaultDataCollectionRuleResourceId'), ''), json('null'), parameters('defaultDataCollectionRuleResourceId'))]",
+        "features": "[variables('features')]",
         "publicNetworkAccessForIngestion": "[parameters('publicNetworkAccessForIngestion')]",
         "publicNetworkAccessForQuery": "[parameters('publicNetworkAccessForQuery')]",
         "retentionInDays": "[parameters('retentionDays')]",
