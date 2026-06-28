@@ -94,11 +94,19 @@
         "podCidr": {
             "type": "string",
             "defaultValue": "10.244.0.0/16"
+        },
+        "outboundPublicIPResourceIds": {
+            "type": "array",
+            "defaultValue": [],
+            "metadata": {
+                "description": "Array of objects with an 'id' property pointing to public IP resources to use for outbound SNAT. When empty, AKS manages one outbound IP automatically."
+            }
         }
     },
     "variables": {
         "vnetSubnetId": "[resourceId(parameters('virtualNetworkResourceGroup'),'Microsoft.Network/virtualNetworks/subnets',parameters('virtualNetworkName'),parameters('subnetName'))]",
         "logAnalyticsId": "[resourceId(parameters('logAnalyticsResourceGroupName'), 'Microsoft.OperationalInsights/workspaces', parameters('logAnalyticsWorkspaceName'))]",
+        "loadBalancerProfile": "[if(empty(parameters('outboundPublicIPResourceIds')), createObject('managedOutboundIPs', createObject('count', 1)), createObject('outboundIPs', createObject('publicIPs', parameters('outboundPublicIPResourceIds'))))]",
         "addOnObject": {
             "noAddons": "[json('null')]",
             "omsAddon": {
@@ -150,7 +158,8 @@
                     "serviceCidr": "[parameters('serviceCidr')]",
                     "dnsServiceIP": "[parameters('dnsServiceIp')]",
                     "podCidr": "[parameters('podCidr')]",
-                    "loadBalancerSku": "standard"
+                    "loadBalancerSku": "standard",
+                    "loadBalancerProfile": "[variables('loadBalancerProfile')]"
                 },
                 "servicePrincipalProfile": {}
             }
