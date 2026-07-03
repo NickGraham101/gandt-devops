@@ -9,6 +9,9 @@ parameters:
   DependabotExperiments: 'none'
   RunDependabotManually: false
   RunMergePRManually: false
+  # Agentless delay between raising the dependabot PRs and merging them, giving
+  # the PR validation builds time to complete on the single self-hosted agent
+  MergeDelayMinutes: 120
 
 stages:
 - stage: Dependabot
@@ -51,6 +54,15 @@ stages:
       inputs:
         dependabotCliPackage: ${{ format('github.com/dependabot/cli/cmd/dependabot@{0}',  parameters.DependabotCliVersion ) }}
         experiments: ${{ parameters.DependabotExperiments }}
+  - job: WaitForBuilds
+    dependsOn: RunDependabot
+    condition: or(and(eq(dependencies.RunDependabot.outputs['CheckScheduleName.RunDependabot'], 'true'), succeeded()), ${{ and(parameters.RunDependabotManually, parameters.RunMergePRManually) }})
+    pool: server
+    timeoutInMinutes: 0
+    steps:
+    - task: Delay@1
+      inputs:
+        delayForMinutes: ${{ parameters.MergeDelayMinutes }}
   - job: MergePRs
     condition: or(and(eq(variables['RunDependabot'], 'true'), succeeded()), ${{ parameters.RunMergePRManually }})
     variables:
@@ -58,7 +70,9 @@ stages:
     ${{ if and(not(parameters.RunDependabotManually), parameters.RunMergePRManually) }}:
       dependsOn: []
     ${{ else }}:
-      dependsOn: RunDependabot
+      dependsOn:
+      - RunDependabot
+      - WaitForBuilds
     timeoutInMinutes: 0
     steps:
     - checkout: self
@@ -84,6 +98,7 @@ stages:
             GitUsername = "${{ parameters.GitUsername }}"
             SourceCodeRootDirectory = "${{ parameters.SourceFolder }}"
             UseGitHiresMerge = $true
+            SetAutoComplete = $true
           }
           $PullRequest = Merge-MultiplePullRequest @Params
           if ($PullRequest) {
@@ -96,5 +111,5 @@ stages:
       inputs:
         targetType: 'filePath'
         filePath: gandt-devops/PSScripts/Send-SlackMessage.ps1
-        arguments: -Emoji ":man-lifting-weights:" -FallBackMessage "Dependabot PR $(PullRequestTitle) raised" -MarkdownMessage "Dependabot PR $(PullRequestTitle) raised" -MessageTitle "Weekly Dependabot Update" -SlackApiUrl "${{ parameters.SlackApiUrl }}"
+        arguments: -Emoji ":man-lifting-weights:" -FallBackMessage "Dependabot PR $(PullRequestTitle) raised and set to auto-complete" -MarkdownMessage "Dependabot PR $(PullRequestTitle) raised and set to auto-complete" -MessageTitle "Weekly Dependabot Update" -SlackApiUrl "${{ parameters.SlackApiUrl }}"
         pwsh: true
