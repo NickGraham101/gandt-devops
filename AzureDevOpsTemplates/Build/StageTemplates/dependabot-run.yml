@@ -5,7 +5,6 @@ parameters:
   GitEmail:
   GitUsername:
   DefaultBranchName: 'refs/heads/master'
-  DependabotCliVersion: 'latest'
   # Tag of the ghcr.io/dependabot/dependabot-updater-{ecosystem} image the
   # dependabot@2 task runs. Defaults to 'latest'; pin to a known-good tag when
   # a 'latest' image is incompatible with the installed extension (e.g. the
@@ -57,7 +56,6 @@ stages:
     - task: dependabot@2
       condition: or(and(eq(variables['CheckScheduleName.RunDependabot'], 'true'), le(variables['System.JobAttempt'], 1), succeeded()), ${{ parameters.RunDependabotManually }})
       inputs:
-        dependabotCliPackage: ${{ format('github.com/dependabot/cli/cmd/dependabot@{0}',  parameters.DependabotCliVersion ) }}
         dependabotUpdaterImage: 'ghcr.io/dependabot/dependabot-updater-{ecosystem}:${{ parameters.DependabotUpdaterImageTag }}'
         experiments: ${{ parameters.DependabotExperiments }}
   - job: WaitForBuilds
