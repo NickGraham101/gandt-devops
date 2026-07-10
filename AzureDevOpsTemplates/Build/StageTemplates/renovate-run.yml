@@ -1,0 +1,120 @@
+parameters:
+  ScheduleName:
+  SlackApiUrl:
+  SourceFolder:
+  GitEmail:
+  GitUsername:
+  DefaultBranchName: 'refs/heads/master'
+  # Version of the renovate/renovate container image to run. Renovate refuses
+  # to start on an unsupported node version, so always run the official image
+  # rather than npx. Pin to a full version and bump deliberately.
+  RenovateVersion: '43.257.6'
+  RunRenovateManually: false
+  RunMergePRManually: false
+  # Agentless delay between raising the renovate PRs and merging them, giving
+  # the PR validation builds time to complete on the single self-hosted agent
+  MergeDelayMinutes: 120
+
+stages:
+- stage: Renovate
+  condition: or(eq(variables['Build.Reason'], 'Schedule'), ${{ parameters.RunRenovateManually }}, ${{ parameters.RunMergePRManually }})
+  jobs:
+  - job: RunRenovate
+    pool:
+      vmImage: ubuntu-latest
+    steps:
+    - checkout: self
+    - checkout: gandt-azure-devops-tools
+    - task: PowerShell@2
+      displayName: 'Check Schedule Name'
+      name: CheckScheduleName
+      inputs:
+        targetType: 'inline'
+        script: |
+          Write-Output "##vso[task.setvariable variable=RunRenovate;isOutput=true]$false"
+          Import-Module $(Build.SourcesDirectory)/gandt-azure-devops-tools/gandt-azure-devops-tools/gandt-azure-devops-tools.psm1
+          $Params = @{
+            Instance = "$(AzureDevOpsOrganizationName)"
+            PatToken = "$(System.AccessToken)"
+            ProjectId = "$(System.TeamProjectId)"
+            BuildId = "$(Build.BuildId)"
+          }
+          $Build = Get-Build @Params
+          if ($Build.ScheduleName -eq "${{ parameters.ScheduleName }}") {
+            Write-Output "Setting RunRenovate to true"
+            Write-Output "##vso[task.setvariable variable=RunRenovate;isOutput=true]true"
+          }
+    - script: |
+        docker run --rm \
+          -e RENOVATE_PLATFORM=azure \
+          -e RENOVATE_ENDPOINT="https://dev.azure.com/$(AzureDevOpsOrganizationName)/" \
+          -e RENOVATE_TOKEN \
+          -e RENOVATE_REPOSITORIES="$(System.TeamProject)/$(Build.Repository.Name)" \
+          -e RENOVATE_ONBOARDING=false \
+          -e RENOVATE_REQUIRE_CONFIG=required \
+          -e RENOVATE_GIT_AUTHOR="${{ parameters.GitUsername }} <${{ parameters.GitEmail }}>" \
+          -e LOG_LEVEL=info \
+          renovate/renovate:${{ parameters.RenovateVersion }}
+      displayName: Run Renovate
+      condition: or(and(eq(variables['CheckScheduleName.RunRenovate'], 'true'), le(variables['System.JobAttempt'], 1), succeeded()), ${{ parameters.RunRenovateManually }})
+      env:
+        RENOVATE_TOKEN: $(System.AccessToken)
+  - job: WaitForBuilds
+    dependsOn: RunRenovate
+    condition: or(and(eq(dependencies.RunRenovate.outputs['CheckScheduleName.RunRenovate'], 'true'), succeeded()), ${{ and(parameters.RunRenovateManually, parameters.RunMergePRManually) }})
+    pool: server
+    timeoutInMinutes: 0
+    steps:
+    - task: Delay@1
+      inputs:
+        delayForMinutes: ${{ parameters.MergeDelayMinutes }}
+  - job: MergePRs
+    condition: or(and(eq(variables['RunRenovate'], 'true'), succeeded()), ${{ parameters.RunMergePRManually }})
+    variables:
+      RunRenovate: $[ dependencies.RunRenovate.outputs['CheckScheduleName.RunRenovate'] ]
+    ${{ if and(not(parameters.RunRenovateManually), parameters.RunMergePRManually) }}:
+      dependsOn: []
+    ${{ else }}:
+      dependsOn:
+      - RunRenovate
+      - WaitForBuilds
+    timeoutInMinutes: 0
+    steps:
+    - checkout: self
+      persistCredentials: true
+    - checkout: gandt-azure-devops-tools
+    - checkout: gandt-devops
+    - task: PowerShell@2
+      displayName: 'Merge Renovate PRs'
+      inputs:
+        targetType: 'inline'
+        script: |
+          Import-Module $(Build.SourcesDirectory)/gandt-azure-devops-tools/gandt-azure-devops-tools/gandt-azure-devops-tools.psm1
+          $Params = @{
+            Instance = "$(AzureDevOpsOrganizationName)"
+            PatToken = "$(System.AccessToken)"
+            ProjectId = "$(System.TeamProjectId)"
+            RepositoryId = "$(Build.Repository.ID)"
+            DefaultBranchName = "${{ parameters.DefaultBranchName }}"
+            MergedPullRequestBranchPrefix = "DEP"
+            MergedPullRequestBranchSuffix = $(Get-Date -format "yyyy-MM-dd")
+            LabelsToInclude = @("dependencies")
+            GitEmail = "${{ parameters.GitEmail }}"
+            GitUsername = "${{ parameters.GitUsername }}"
+            SourceCodeRootDirectory = "${{ parameters.SourceFolder }}"
+            UseGitHiresMerge = $true
+            SetAutoComplete = $true
+          }
+          $PullRequest = Merge-MultiplePullRequest @Params
+          if ($PullRequest) {
+            Write-Output "Setting PullRequestTitle to $($PullRequest.Title)"
+            Write-Output "##vso[task.setvariable variable=PullRequestTitle]$($PullRequest.Title)"
+          }
+    - task: PowerShell@2
+      condition: ne(variables['PullRequestTitle'], '')
+      displayName: Send Slack Message
+      inputs:
+        targetType: 'filePath'
+        filePath: gandt-devops/PSScripts/Send-SlackMessage.ps1
+        arguments: -Emoji ":man-lifting-weights:" -FallBackMessage "Renovate PR $(PullRequestTitle) raised and set to auto-complete" -MarkdownMessage "Renovate PR $(PullRequestTitle) raised and set to auto-complete" -MessageTitle "Weekly Renovate Update" -SlackApiUrl "${{ parameters.SlackApiUrl }}"
+        pwsh: true
