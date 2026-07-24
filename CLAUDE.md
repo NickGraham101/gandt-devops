@@ -41,7 +41,7 @@ Pipeline templates consumed by downstream repos via multi-repo checkout. Organiz
 
 - `Build/StepTemplates/` — individual build steps (dotnet build+test, docker tag, GitVersion fix)
 - `Build/JobTemplates/` — full build jobs (Pulumi preview)
-- `Build/StageTemplates/` — full stages (Dependabot automation, scheduled job reporting)
+- `Build/StageTemplates/` — full stages (Renovate automation, scheduled job reporting)
 - `Deploy/StepTemplates/` — individual deploy steps (ARM deploy, Kubernetes namespace/secret/exec/check, Pulumi up)
 
 Templates detect multi-repo checkout context and adjust script paths accordingly.
