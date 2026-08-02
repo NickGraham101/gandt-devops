@@ -112,8 +112,10 @@
             "omsAddon": {
                 "omsagent": {
                     "enabled": true,
+                    "identity": null,
                     "config": {
-                        "logAnalyticsWorkspaceResourceID": "[variables('logAnalyticsId')]"
+                        "logAnalyticsWorkspaceResourceID": "[variables('logAnalyticsId')]",
+                        "useAADAuth": "true"
                     }
                 }
             }
