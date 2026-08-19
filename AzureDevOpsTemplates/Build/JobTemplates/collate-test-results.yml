@@ -1,0 +1,85 @@
+parameters:
+  Condition: true
+  # required (object/array, e.g. [JobA, JobB]) - no default, since a collate job with no
+  # dependencies races the jobs producing what it collates
+  DependsOn:
+    type: object
+  AzureDevOpsOrganizationName:
+  RequiredTestRunCount: 0
+  BaselineBranchName: 'refs/heads/master'
+  # semicolon-joined glob pattern(s) for reportgenerator's `reports` input
+  CoverageReportsGlob:
+  # reportgenerator's `sourcedirs` input
+  CoverageSourceDirs:
+  # each entry: Path (required, download destination); ArtifactName (optional - omit to
+  # download all artifacts into Path, e.g. when the producing job's exact
+  # $(System.JobAttempt) can't be known here); optionally ExtractZip (zip file name
+  # inside Path) + ExtractDestination (defaults to Path) to extract it after download;
+  # optionally ContinueOnError (bool, default false)
+  DownloadArtifacts: []
+
+jobs:
+- job: CollateTestResults
+  condition: ${{ parameters.Condition }}
+  dependsOn: ${{ parameters.DependsOn }}
+  steps:
+  - checkout: self
+  - checkout: gandt-devops
+  - checkout: gandt-azure-devops-tools
+  - ${{ each artifact in parameters.DownloadArtifacts }}:
+    - task: DownloadPipelineArtifact@2
+      displayName: 'Download ${{ coalesce(artifact.ArtifactName, "all artifacts") }} to ${{ artifact.Path }}'
+      inputs:
+        ${{ if ne(coalesce(artifact.ArtifactName, ''), '') }}:
+          artifact: ${{ artifact.ArtifactName }}
+        path: ${{ artifact.Path }}
+      continueOnError: ${{ coalesce(artifact.ContinueOnError, false) }}
+    - ${{ if ne(coalesce(artifact.ExtractZip, ''), '') }}:
+      - task: ExtractFiles@1
+        displayName: 'Extract ${{ artifact.ExtractZip }}'
+        inputs:
+          archiveFilePatterns: ${{ artifact.Path }}/${{ artifact.ExtractZip }}
+          destinationFolder: ${{ coalesce(artifact.ExtractDestination, artifact.Path) }}
+          cleanDestinationFolder: true
+  - task: reportgenerator@5
+    displayName: Report Generator
+    inputs:
+      reports: '${{ parameters.CoverageReportsGlob }}'
+      sourcedirs: ${{ parameters.CoverageSourceDirs }}
+      targetdir: '$(Agent.TempDirectory)/coveragereport'
+      reporttypes: 'HtmlInline_AzurePipelines;Cobertura'
+      verbosity: 'Verbose' # The verbosity level of the log messages. Values: Verbose, Info, Warning, Error, Off
+      customSettings: 'settings:customHeadersForRemoteFiles=Authorization=Bearer $(System.AccessToken)'
+      publishCodeCoverageResults: true
+  - task: PowerShell@2
+    displayName: Check for failed tests
+    inputs:
+      targetType: 'filePath'
+      filePath: $(Build.SourcesDirectory)/gandt-devops/PSScripts/Test-AllTestResults.ps1
+      arguments: >-
+        -AzureDevOpsOrganizationName ${{ parameters.AzureDevOpsOrganizationName }}
+        -BuildId $(Build.BuildId)
+        -ModulePath $(Build.SourcesDirectory)/gandt-azure-devops-tools/gandt-azure-devops-tools/gandt-azure-devops-tools.psm1
+        -PatToken $(System.AccessToken)
+        -ProjectId $(System.TeamProject)
+        -Verbose
+      pwsh: true
+  - task: PowerShell@2
+    displayName: Check number of completed test runs
+    inputs:
+      targetType: 'inline'
+      script: |
+        [int]$RequiredTestRunCount = ${{ parameters.RequiredTestRunCount }}
+        if ([int]$env:CompletedTestRunCount -lt $RequiredTestRunCount) {
+          throw "CompletedTestRunCount is $($env:CompletedTestRunCount), required RequiredTestRunCount is $RequiredTestRunCount, failing pipeline"
+        }
+    env:
+      CompletedTestRunCount: $(CompletedTestRunCount)
+  - task: PowerShell@2
+    displayName: Check for code coverage changes
+    inputs:
+      arguments: '-Verbose -AccessToken $(System.AccessToken) -AzureDevOpsOrganizationName ${{ parameters.AzureDevOpsOrganizationName }} -AzureDevOpsToolsPath $(Build.SourcesDirectory)/gandt-azure-devops-tools/gandt-azure-devops-tools/gandt-azure-devops-tools.psm1 -BaselineBranchName "${{ parameters.BaselineBranchName }}" -BuildDefinitionId $(System.DefinitionId) -ComparisonBuildId $(Build.BuildId) -AzDevOpsProject $(System.TeamProject)'
+      filePath: $(Build.SourcesDirectory)/gandt-devops/PSScripts/Test-CodeCoverage.ps1
+      pwsh: true
+    # ideally this will fail but Azure DevOps is not consistently reporting the coverage result from Report Generator
+    continueOnError: true
