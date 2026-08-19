@@ -3,6 +3,13 @@ parameters:
   DependsOn: []
   JobName: 'BuildTestProjects'
   ArtifactBaseName:
+  # optional - overrides the default retry-safe artifact name
+  # (${ArtifactBaseName}_$(Build.BuildId)_$(System.JobAttempt)). A downstream job that
+  # references this artifact by exact name can't reconstruct another job's
+  # $(System.JobAttempt) value, so retry-safety and being consumed by name from a
+  # different job are mutually exclusive - set this to opt into the latter and accept
+  # that a retry of this job after it already published once will collide.
+  ArtifactName: ''
   Pool:
     type: object
   # each entry: ProjectPath (csproj to publish), OutputPath (publish -o target, relative to
@@ -51,4 +58,4 @@ jobs:
     displayName: 'Publish Artifact: ${{ parameters.ArtifactBaseName }}'
     inputs:
       targetPath: $(build.artifactstagingdirectory)/Artifact/${{ parameters.ArtifactBaseName }}/
-      artifactName: ${{ parameters.ArtifactBaseName }}_$(Build.BuildId)_$(System.JobAttempt)
+      artifactName: ${{ coalesce(parameters.ArtifactName, format('{0}_$(Build.BuildId)_$(System.JobAttempt)', parameters.ArtifactBaseName)) }}
