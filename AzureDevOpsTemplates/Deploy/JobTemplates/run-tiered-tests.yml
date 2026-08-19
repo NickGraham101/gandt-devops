@@ -1,0 +1,84 @@
+parameters:
+  Environment:
+  TestCategoryDomain:
+  TestProject:
+  # the pipeline artifact to extract the test project from
+  TestArtifactName:
+  # zip base name (without .zip) inside TestArtifactName - defaults to matching
+  # TestArtifactName, but these diverge once a producer's artifact name carries a
+  # retry-safety suffix (e.g. $(System.JobAttempt)) that the zip's own file name doesn't
+  TestArchiveBaseName: ''
+  DependsOn: []
+  Pool:
+    type: object
+  PublishCoverageResults: false
+  RunTests: true
+  TaskNameSuffix: ''
+  TestCategoryDataChange: ''
+  # Caps NUnit parallel workers (one chromium per worker). Empty = adapter default
+  # (Environment.ProcessorCount). Set to 1 for memory-heavy ReadWrite tests to keep
+  # the agent pod under its 2G cgroup limit (see grahamandtonic B120).
+  MaxParallelWorkers: ''
+
+jobs:
+- deployment: RunTests_${{ replace(parameters.TestProject, '.', '_') }}${{ parameters.TaskNameSuffix }}
+  condition: and(succeeded(), ${{ parameters.RunTests }})
+  dependsOn: ${{ parameters.DependsOn }}
+  displayName: Run ${{ parameters.TestCategoryDomain }} ${{ parameters.TestCategoryDataChange }} Tests
+  environment: ${{ parameters.Environment }}
+  pool:
+    ${{ parameters.Pool }}
+  timeoutInMinutes: 0
+  strategy:
+    runOnce:
+      deploy:
+        steps:
+        - task: ExtractFiles@1
+          inputs:
+            archiveFilePatterns: $(Pipeline.Workspace)/${{ parameters.TestArtifactName }}/${{ coalesce(parameters.TestArchiveBaseName, parameters.TestArtifactName) }}.zip
+            destinationFolder: $(Build.SourcesDirectory)/src/
+            cleanDestinationFolder: true
+        - task: qetza.replacetokens.replacetokens-task.replacetokens@6
+          displayName: 'Replace tokens in appsettings.json'
+          inputs:
+            root: $(Build.SourcesDirectory)/src/
+            sources: '**/appsettings.json'
+            tokenPattern: doubleunderscores
+            telemetryOptout: true
+            actionOnMissing: 'off'
+        - task: DotNetCoreCLI@2
+          displayName: Test
+          inputs:
+            command: test
+            projects: $(Build.SourcesDirectory)/src/${{ parameters.TestProject }}/${{ parameters.TestProject }}.csproj
+            ${{ if and(eq(parameters.PublishCoverageResults, true), eq(length(parameters.TestCategoryDataChange), 0)) }}:
+              arguments: --filter TestCategory=${{ parameters.TestCategoryDomain }} --collect:"XPlat Code Coverage" --configuration Release --settings $(Build.SourcesDirectory)/src/${{ parameters.TestProject }}/.runsettings
+            ${{ if and(eq(parameters.PublishCoverageResults, false), eq(length(parameters.TestCategoryDataChange), 0)) }}:
+              arguments: --filter TestCategory=${{ parameters.TestCategoryDomain }} --configuration Release
+            ${{ if and(eq(parameters.PublishCoverageResults, true), gt(length(parameters.TestCategoryDataChange), 0)) }}:
+              arguments: --filter "TestCategory=${{ parameters.TestCategoryDataChange }} & TestCategory=${{ parameters.TestCategoryDomain }}" --collect:"XPlat Code Coverage" --configuration Release --settings $(Build.SourcesDirectory)/src/${{ parameters.TestProject }}/.runsettings
+            ${{ if and(eq(parameters.PublishCoverageResults, false), gt(length(parameters.TestCategoryDataChange), 0), eq(length(parameters.MaxParallelWorkers), 0)) }}:
+              arguments: --filter "TestCategory=${{ parameters.TestCategoryDataChange }} & TestCategory=${{ parameters.TestCategoryDomain }}" --configuration Release
+            ${{ if and(eq(parameters.PublishCoverageResults, false), gt(length(parameters.TestCategoryDataChange), 0), gt(length(parameters.MaxParallelWorkers), 0)) }}:
+              arguments: --filter "TestCategory=${{ parameters.TestCategoryDataChange }} & TestCategory=${{ parameters.TestCategoryDomain }}" --configuration Release -- NUnit.NumberOfTestWorkers=${{ parameters.MaxParallelWorkers }}
+            ${{ if le(length(parameters.TestCategoryDataChange), 0) }}:
+              testRunTitle: ${{ parameters.TestProject }}_$(Build.BuildId)_$(System.JobAttempt)
+            ${{ if gt(length(parameters.TestCategoryDataChange), 0) }}:
+              testRunTitle: ${{ parameters.TestProject }}-${{ parameters.TestCategoryDataChange }}_$(Build.BuildId)_$(System.JobAttempt)
+          continueOnError: true
+        - task: CopyFiles@2
+          inputs:
+            sourceFolder: $(Agent.TempDirectory)/
+            targetFolder: $(Build.ArtifactStagingDirectory)/codecoverage
+            flattenFolders: true
+        - task: PublishPipelineArtifact@0
+          condition: ${{ parameters.PublishCoverageResults }}
+          displayName: 'Publish Artifact: ${{ parameters.TestProject }} Code Coverage'
+          inputs:
+            targetPath: $(Build.ArtifactStagingDirectory)/codecoverage
+            artifactName: ${{ parameters.TestProject }}_CodeCoverage_$(Build.BuildId)_$(System.JobAttempt)
+        - task: PublishPipelineArtifact@0
+          displayName: 'Publish Artifact: ${{ parameters.TestProject }}'
+          inputs:
+            targetPath: $(Pipeline.Workspace)/TestResults
+            artifactName: ${{ parameters.TestProject }}_TestResults_$(Build.BuildId)_$(System.JobAttempt)_${{ parameters.TaskNameSuffix }}
