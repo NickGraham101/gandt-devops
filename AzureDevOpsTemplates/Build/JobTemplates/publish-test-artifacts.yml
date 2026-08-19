@@ -1,0 +1,54 @@
+parameters:
+  Condition: true
+  DependsOn: []
+  JobName: 'BuildTestProjects'
+  ArtifactBaseName:
+  Pool:
+    type: object
+  # each entry: ProjectPath (csproj to publish), OutputPath (publish -o target, relative to
+  # repo root), optional RunSettingsTargetPath (defaults to OutputPath) - the folder
+  # RunSettingsSourcePath is copied into, e.g. the project's source root rather than its
+  # publish output, when a consumer needs .runsettings to sit next to the source project
+  Projects: []
+  ArchiveRootFolder: 'src'
+  # optional: a file (e.g. .runsettings) copied into each project's RunSettingsTargetPath
+  # (or OutputPath if that's not set) before archiving
+  RunSettingsSourcePath: ''
+
+jobs:
+- job: ${{ parameters.JobName }}
+  condition: ${{ parameters.Condition }}
+  dependsOn: ${{ parameters.DependsOn }}
+  pool:
+    ${{ parameters.Pool }}
+  steps:
+  - checkout: self
+  - ${{ each project in parameters.Projects }}:
+    - task: DotNetCoreCLI@2
+      displayName: 'dotnet publish application ${{ project.ProjectPath }}'
+      inputs:
+        command: publish
+        projects: '${{ project.ProjectPath }}'
+        arguments: '-c release -o ${{ project.OutputPath }}'
+        publishWebProjects: false #set to false as this setting (which defaults to true) will parse the entire repo for web projects
+        zipAfterPublish: false
+        modifyOutputPath: false
+    - ${{ if ne(parameters.RunSettingsSourcePath, '') }}:
+      - task: CopyFiles@2
+        displayName: 'Copy .runsettings into ${{ coalesce(project.RunSettingsTargetPath, project.OutputPath) }}'
+        inputs:
+          SourceFolder: $(Build.SourcesDirectory)
+          Contents: ${{ parameters.RunSettingsSourcePath }}
+          TargetFolder: ${{ coalesce(project.RunSettingsTargetPath, project.OutputPath) }}
+          flattenFolders: true
+  - task: ArchiveFiles@2
+    displayName: 'Archive ${{ parameters.ArtifactBaseName }}'
+    inputs:
+      rootFolderOrFile: ${{ parameters.ArchiveRootFolder }}
+      archiveFile: $(build.artifactstagingdirectory)/Artifact/${{ parameters.ArtifactBaseName }}/${{ parameters.ArtifactBaseName }}.zip
+      includeRootFolder: false
+  - task: PublishPipelineArtifact@1
+    displayName: 'Publish Artifact: ${{ parameters.ArtifactBaseName }}'
+    inputs:
+      targetPath: $(build.artifactstagingdirectory)/Artifact/${{ parameters.ArtifactBaseName }}/
+      artifactName: ${{ parameters.ArtifactBaseName }}_$(Build.BuildId)_$(System.JobAttempt)
