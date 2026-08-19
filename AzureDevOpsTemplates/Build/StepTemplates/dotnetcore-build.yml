@@ -1,4 +1,3 @@
-# GitVersion: if a GitVersion config file is required this should be stored at the root of the repo.  If the file doesn't exist GitVersion defaults will be used - https://gitversion.readthedocs.io/en/latest/
 parameters:
   # must include final forward slash
   SolutionRootFolder:
@@ -6,7 +5,6 @@ parameters:
   BuildPlatform: 'any cpu'
   BuildConfiguration: 'release'
   DotNetCoreVersion: ''
-  GitVersionTargetPath: '/'
   IncludePreviewVersions: false
   PublishWebApp: 'false'
   TestRunSettingsFile : ''
@@ -20,21 +18,6 @@ steps:
   inputs:
     version: ${{ parameters.DotNetCoreVersion }}
     IncludePreviewVersions: ${{ parameters.IncludePreviewVersions }}
-
-- task: gitversion/setup@3.0.0
-  displayName: Install GitVersion
-  inputs:
-    versionSpec: 5.x
-
-- task: gitversion/execute@3.0.0
-  displayName: gitversion/execute
-  inputs:
-    targetPath: ${{ parameters.GitVersionTargetPath }}
-    useConfigFile: true
-    ${{ if eq(parameters.GitVersionTargetPath, '/')  }}:
-      configFilePath: GitVersion.yml
-    ${{ if ne(parameters.GitVersionTargetPath, '/')  }}:
-      configFilePath: ${{ parameters.GitVersionTargetPath }}/GitVersion.yml
 
 # tasks to package a function app
 - task: DotNetCoreCLI@2

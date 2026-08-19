@@ -1,18 +1,4 @@
-parameters:
-  PathToConfigFile:
-  TargetPath:
-
 steps:
-- task: gitversion/setup@3.0.0
-  displayName: gitversion/setup
-  inputs:
-    versionSpec: 5.x
-- task: gitversion/execute@3.0.0
-  displayName: gitversion/execute
-  inputs:
-    useConfigFile: true
-    configFilePath: ${{ parameters.PathToConfigFile }}
-    targetPath: ${{ parameters.TargetPath }}
 - task: PowerShell@2
   displayName: 'PowerShell script: Set-DockerImageTag'
   inputs:
