@@ -37,24 +37,72 @@ jobs:
       if: always()
       with:
         files: '**/TEST-*.xml'
-  tag:
-    name: Push Git Tag
-    needs: [test]
+  lint-commits:
+    name: Lint Commit Messages
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
+    - name: Check commit message format
+      shell: bash
+      run: |
+        PATTERN='^(feat|fix|chore|docs|refactor|test|style|perf|build|ci)(\([^)]*\))?!?: .+'
+        FAIL=0
+        while IFS= read -r subject; do
+          if ! echo "$subject" | grep -qE "$PATTERN"; then
+            echo "::error::Commit message does not follow Conventional Commits format: $subject"
+            FAIL=1
+          fi
+        done < <(git log "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" --pretty=format:'%s')
+        exit $FAIL
+  tag:
+    name: Push Git Tag
+    needs: [lint-commits,test]
+    if: |
+      always() &&
+      needs.test.result == 'success' &&
+      (needs.lint-commits.result == 'success' || needs.lint-commits.result == 'skipped')
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
     - name: Get latest tag
       uses: actions-ecosystem/action-get-latest-tag@v1.6.0
       id: get-latest-tag
       with:
         semver_only: true
+    - name: Determine bump level
+      id: bump-level
+      shell: bash
+      run: |
+        TAG="${{ steps.get-latest-tag.outputs.tag }}"
+        if git rev-parse "$TAG" >/dev/null 2>&1; then
+          RANGE="$TAG..HEAD"
+        else
+          RANGE="HEAD"
+        fi
+        LOG=$(git log $RANGE --pretty=format:'%s%n%b')
+        TYPES='feat|fix|chore|docs|refactor|test|style|perf|build|ci'
+        if echo "$LOG" | grep -qE "^BREAKING CHANGE:|^($TYPES)(\([^)]*\))?!:"; then
+          LEVEL=major
+        elif echo "$LOG" | grep -qE '^feat(\([^)]*\))?:'; then
+          LEVEL=minor
+        else
+          LEVEL=patch
+        fi
+        echo "Computed bump level: $LEVEL"
+        echo "level=$LEVEL" >> "$GITHUB_OUTPUT"
     - name: Bump tag
       uses: actions-ecosystem/action-bump-semver@v1.0.0
       id: bump-semver
       with:
         current_version: ${{ steps.get-latest-tag.outputs.tag }}
-        level: minor
+        level: ${{ steps.bump-level.outputs.level }}
     - name: Push tag
       uses: actions-ecosystem/action-push-tag@v1.0.0
       if: ${{ success() && github.ref == 'refs/heads/main' }}

@@ -15,6 +15,19 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Shared DevOps toolkit providing reusable ARM templates, Azure DevOps pipeline templates, and PowerShell scripts for CI/CD pipelines. Consumed by downstream pipelines via multi-repo checkout and pinned by tag — update the pinned tag in consumer pipelines when releasing new versions.
 
+## Commit Message Convention
+
+Every commit on a PR must follow Conventional Commits — `.github/workflows/test.yml`'s `lint-commits` job gates PR CI on it, and the `tag` job's `Determine bump level` step scans commit subjects/bodies since the last tag to decide the semver bump on merge to `main`:
+
+| Prefix | Bump |
+|--------|------|
+| `fix:` | patch |
+| `feat:` | minor |
+| `feat!:` / `fix!:` / any type with `!:` / `BREAKING CHANGE:` footer | major |
+| `chore:`, `docs:`, `refactor:`, `test:`, `style:`, `perf:`, `build:`, `ci:` | patch (no `feat:` or breaking marker present) |
+
+Any template parameter removal/rename in this repo (e.g. `AzureDevOpsTemplates/**`) is a breaking change to downstream pinned consumers — always use the `!:` form for those commits, even if the change looks small.
+
 ## Testing
 
 Requires PowerShell with **Pester** and **PSScriptAnalyzer** modules installed.
