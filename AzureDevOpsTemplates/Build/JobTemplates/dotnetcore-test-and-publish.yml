@@ -3,6 +3,13 @@ parameters:
   DependsOn: []
   JobName: 'UnitTest'
   Language: 'C#'
+  # optional - overrides the default retry-safe artifact name
+  # (Build_TestOutput_${Language}_$(Build.BuildId)_$(System.JobAttempt)). A downstream
+  # job that references this artifact by exact name can't reconstruct another job's
+  # $(System.JobAttempt) value, so retry-safety and being consumed by name from a
+  # different job are mutually exclusive - set this to opt into the latter and accept
+  # that a retry of this job after it already published once will collide.
+  ArtifactName: ''
   # steps to run after checkout, before the per-project build+test loop - e.g. a
   # solution-wide build to catch build errors that the per-project test task (which
   # runs with continueOnError: true) would otherwise swallow silently, NuGet
@@ -39,4 +46,4 @@ jobs:
     displayName: 'Publish Artifact: Test Output'
     inputs:
       targetPath: $(Agent.TempDirectory)
-      artifactName: Build_TestOutput_${{ parameters.Language }}_$(Build.BuildId)_$(System.JobAttempt)
+      artifactName: ${{ coalesce(parameters.ArtifactName, format('Build_TestOutput_{0}_$(Build.BuildId)_$(System.JobAttempt)', parameters.Language)) }}
