@@ -1,0 +1,42 @@
+parameters:
+  Condition: true
+  DependsOn: []
+  JobName: 'UnitTest'
+  Language: 'C#'
+  # steps to run after checkout, before the per-project build+test loop - e.g. a
+  # solution-wide build to catch build errors that the per-project test task (which
+  # runs with continueOnError: true) would otherwise swallow silently, NuGet
+  # auth/restore, or a Pulumi install. May include additional `checkout:` steps.
+  PreSteps: []
+  # each entry maps to dotnetcore-build.yml@gandt-devops's own parameters:
+  #   SolutionRootFolder, SolutionBaseName, BuildPlatform, BuildConfiguration,
+  #   DotNetCoreVersion, IncludePreviewVersions, PublishWebApp, TestRunSettingsFile,
+  #   TestsRootFolder, TestSuffix
+  Projects: []
+
+jobs:
+- job: ${{ parameters.JobName }}
+  condition: ${{ parameters.Condition }}
+  dependsOn: ${{ parameters.DependsOn }}
+  steps:
+  - checkout: self
+  - ${{ each step in parameters.PreSteps }}:
+    - ${{ step }}
+  - ${{ each project in parameters.Projects }}:
+    - template: ../StepTemplates/dotnetcore-build.yml
+      parameters:
+        SolutionRootFolder: ${{ project.SolutionRootFolder }}
+        SolutionBaseName: ${{ project.SolutionBaseName }}
+        BuildPlatform: ${{ coalesce(project.BuildPlatform, 'any cpu') }}
+        BuildConfiguration: ${{ coalesce(project.BuildConfiguration, 'release') }}
+        DotNetCoreVersion: ${{ coalesce(project.DotNetCoreVersion, '') }}
+        IncludePreviewVersions: ${{ coalesce(project.IncludePreviewVersions, false) }}
+        PublishWebApp: ${{ coalesce(project.PublishWebApp, 'false') }}
+        TestRunSettingsFile: ${{ coalesce(project.TestRunSettingsFile, '') }}
+        TestsRootFolder: ${{ coalesce(project.TestsRootFolder, '') }}
+        TestSuffix: ${{ coalesce(project.TestSuffix, 'Tests') }}
+  - task: PublishPipelineArtifact@1
+    displayName: 'Publish Artifact: Test Output'
+    inputs:
+      targetPath: $(Agent.TempDirectory)
+      artifactName: Build_TestOutput_${{ parameters.Language }}_$(Build.BuildId)_$(System.JobAttempt)
