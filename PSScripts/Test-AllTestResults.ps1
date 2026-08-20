@@ -12,6 +12,13 @@ param(
     [String]$ProjectId
 )
 
+# TotalTests/FailedTests/SlackTableText/CompletedTestRunCount below are set with isOutput=true,
+# so same-job consumers must reference them as $(StepName.Variable), not the bare $(Variable)
+# form (see collate-test-results.yml@gandt-devops). grahamandtonic's own
+# JobTemplates/publish-test-results.yml still calls this script directly and reads the bare
+# form - don't bump grahamandtonic's gandt-devops pin past the tag containing this change
+# without updating that file's references in the same PR, or its Slack report and
+# "Check number of completed test runs" gate will silently break.
 Import-Module $ModulePath
 $TestRuns = Get-TestRun -Instance $AzureDevOpsOrganizationName -PatToken $PatToken -ProjectId $ProjectId -BuildId $BuildId | Sort-Object -Property Name, CompletedDate -Descending
 Write-Verbose "TestRuns:`n$($TestRuns | Format-Table -AutoSize | Out-String)"
@@ -33,11 +40,11 @@ Write-Verbose "LastTestRuns:`n$($LatestTestRuns | Format-Table -AutoSize | Out-S
 
 $TotalTests = ($LatestTestRuns | Measure-Object -Property TotalTests -Sum).Sum
 Write-Verbose "TotalTests: $TotalTests"
-Write-Output "##vso[task.setvariable variable=TotalTests]$TotalTests"
+Write-Output "##vso[task.setvariable variable=TotalTests;isOutput=true]$TotalTests"
 
 $FailedTests = ($LatestTestRuns | Measure-Object -Property FailedTests -Sum).Sum
 Write-Verbose "FailedTests: $FailedTests"
-Write-Output "##vso[task.setvariable variable=FailedTests]$FailedTests"
+Write-Output "##vso[task.setvariable variable=FailedTests;isOutput=true]$FailedTests"
 
 $SlackTable = @()
 foreach ($TestRun in $LatestTestRuns) {
@@ -45,11 +52,11 @@ foreach ($TestRun in $LatestTestRuns) {
 }
 $SlackTableText = $SlackTable -join " %0D%0A"
 Write-Verbose "SlackTableText: $SlackTableText"
-Write-Output "##vso[task.setvariable variable=SlackTableText]$SlackTableText"
+Write-Output "##vso[task.setvariable variable=SlackTableText;isOutput=true]$SlackTableText"
 
 $CompletedTestRunCount = $LatestTestRuns.Count
 Write-Verbose "CompletedTestRunCount: $CompletedTestRunCount"
-Write-Output "##vso[task.setvariable variable=CompletedTestRunCount]$CompletedTestRunCount"
+Write-Output "##vso[task.setvariable variable=CompletedTestRunCount;isOutput=true]$CompletedTestRunCount"
 
 if (($LatestTestRuns | Where-Object { $_.FailedTests -gt 0 }).Count -gt 0) {
     Write-Error "At least one test failed."
