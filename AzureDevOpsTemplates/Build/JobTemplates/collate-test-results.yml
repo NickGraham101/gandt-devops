@@ -7,6 +7,10 @@ parameters:
   AzureDevOpsOrganizationName:
   RequiredTestRunCount: 0
   BaselineBranchName: 'refs/heads/master'
+  # weekly Slack report of the merged test results, sent when Build.Reason == Schedule. Omit
+  # (leave empty) to skip Slack reporting entirely.
+  SlackApiUrl: ''
+  MessageTitle: 'Weekly Full Test Results'
   # semicolon-joined glob pattern(s) for reportgenerator's `reports` input
   CoverageReportsGlob:
   # reportgenerator's `sourcedirs` input
@@ -52,6 +56,7 @@ jobs:
       customSettings: 'settings:customHeadersForRemoteFiles=Authorization=Bearer $(System.AccessToken)'
       publishCodeCoverageResults: true
   - task: PowerShell@2
+    name: CheckForFailedTests
     displayName: Check for failed tests
     inputs:
       targetType: 'filePath'
@@ -64,6 +69,42 @@ jobs:
         -ProjectId $(System.TeamProject)
         -Verbose
       pwsh: true
+  - ${{ if ne(parameters.SlackApiUrl, '') }}:
+    - task: PowerShell@2
+      # CheckForFailedTests fails (Write-Error, default errorActionPreference=stop) both when
+      # tests genuinely failed (after setting its output variables) and when no test results
+      # were retrieved at all (before setting them) - succeeded() alone would wrongly suppress
+      # the former, so gate on TotalTests actually having been set instead.
+      condition: and(in(variables['Build.Reason'], 'Schedule'), ne(variables['CheckForFailedTests.TotalTests'], ''))
+      displayName: Set Slack Message Emoji
+      inputs:
+        targetType: 'inline'
+        script: |
+          if ($env:FailedTests -gt 0) {
+            $SlackEmoji = ":warning:"
+          }
+          else {
+            $SlackEmoji = ":white_check_mark:"
+          }
+          Write-Output "Setting SlackEmoji to $SlackEmoji"
+          Write-Output "##vso[task.setvariable variable=SlackEmoji]$SlackEmoji"
+      env:
+        FailedTests: $(CheckForFailedTests.FailedTests)
+    - task: PowerShell@2
+      # see condition comment on 'Set Slack Message Emoji' above
+      condition: and(in(variables['Build.Reason'], 'Schedule'), ne(variables['CheckForFailedTests.TotalTests'], ''))
+      displayName: Report weekly test results
+      inputs:
+        targetType: 'filePath'
+        filePath: $(Build.SourcesDirectory)/gandt-devops/PSScripts/Send-SlackMessage.ps1
+        arguments: >-
+          -Emoji $(SlackEmoji)
+          -FallBackMessage "$(CheckForFailedTests.FailedTests) tests failed out of $(CheckForFailedTests.TotalTests) tests ran."
+          -MarkdownMessage "$(CheckForFailedTests.FailedTests) tests failed out of $(CheckForFailedTests.TotalTests) tests ran on scheduled <$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)&view=ms.vss-test-web.build-test-results-tab|build>. `n $(CheckForFailedTests.SlackTableText)"
+          -MessageTitle "${{ parameters.MessageTitle }}"
+          -SlackApiUrl "${{ parameters.SlackApiUrl }}"
+          -Verbose
+        pwsh: true
   - task: PowerShell@2
     displayName: Check number of completed test runs
     inputs:
@@ -74,7 +115,7 @@ jobs:
           throw "CompletedTestRunCount is $($env:CompletedTestRunCount), required RequiredTestRunCount is $RequiredTestRunCount, failing pipeline"
         }
     env:
-      CompletedTestRunCount: $(CompletedTestRunCount)
+      CompletedTestRunCount: $(CheckForFailedTests.CompletedTestRunCount)
   - task: PowerShell@2
     displayName: Check for code coverage changes
     inputs:
