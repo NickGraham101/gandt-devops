@@ -36,10 +36,13 @@ parameters:
   PreSteps: []
   # runtime-expression condition applied to the download/reportgenerator/run-count/coverage
   # steps only - NOT to CheckForFailedTests, which always runs so a genuine test failure still
-  # blocks the pipeline regardless. Override to skip the heavier reporting work on e.g. Renovate
-  # PRs, matching the pattern `and(not(startsWith(variables['System.PullRequest.SourceBranch'],
-  # 'refs/heads/renovate/')), succeeded())`.
-  ReportingCondition: true
+  # blocks the pipeline regardless. Defaults to 'succeeded()' (these steps' original implicit
+  # condition) so an earlier failure (e.g. a download) still skips the rest of the cascade
+  # instead of running against missing data. Override to ALSO skip the heavier reporting work
+  # on e.g. Renovate PRs, matching the pattern `and(succeeded(),
+  # not(startsWith(variables['System.PullRequest.SourceBranch'],
+  # 'refs/heads/renovate/')))`.
+  ReportingCondition: succeeded()
 
 jobs:
 - job: ${{ parameters.JobName }}
