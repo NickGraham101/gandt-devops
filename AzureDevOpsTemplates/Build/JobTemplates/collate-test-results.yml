@@ -4,8 +4,17 @@ parameters:
   # dependencies races the jobs producing what it collates
   DependsOn:
     type: object
+  JobName: 'CollateTestResults'
   AzureDevOpsOrganizationName:
-  RequiredTestRunCount: 0
+  # path to scan for test-project subfolders (matched by name containing "tests") to compute
+  # the required test-run count at runtime - e.g. '$(Build.SourcesDirectory)/self/src'. Leave
+  # empty (default) together with AdditionalRequiredTestRunCount: 0 to skip the check entirely
+  # (RequiredTestRunCount always resolves to 0, which every CompletedTestRunCount satisfies)
+  TestProjectsPath: ''
+  # added to the TestProjectsPath scan count - e.g. for test projects the scan can't see
+  # (a non-".NET" test suite) or a job that reports multiple runs per project (a tiered test
+  # split into ReadOnly/ReadWrite runs)
+  AdditionalRequiredTestRunCount: 0
   BaselineBranchName: 'refs/heads/master'
   # weekly Slack report of the merged test results, sent when Build.Reason == Schedule. Omit
   # (leave empty) to skip Slack reporting entirely.
@@ -21,17 +30,30 @@ parameters:
   # inside Path) + ExtractDestination (defaults to Path) to extract it after download;
   # optionally ContinueOnError (bool, default false)
   DownloadArtifacts: []
+  # steps to run after checkout, before the download/reportgenerator/check work - e.g. a
+  # kubectl install + cluster call a consumer needs alongside the collated report. May
+  # include additional `checkout:` steps.
+  PreSteps: []
+  # runtime-expression condition applied to the download/reportgenerator/run-count/coverage
+  # steps only - NOT to CheckForFailedTests, which always runs so a genuine test failure still
+  # blocks the pipeline regardless. Override to skip the heavier reporting work on e.g. Renovate
+  # PRs, matching the pattern `and(not(startsWith(variables['System.PullRequest.SourceBranch'],
+  # 'refs/heads/renovate/')), succeeded())`.
+  ReportingCondition: true
 
 jobs:
-- job: CollateTestResults
+- job: ${{ parameters.JobName }}
   condition: ${{ parameters.Condition }}
   dependsOn: ${{ parameters.DependsOn }}
   steps:
   - checkout: self
   - checkout: gandt-devops
   - checkout: gandt-azure-devops-tools
+  - ${{ each step in parameters.PreSteps }}:
+    - ${{ step }}
   - ${{ each artifact in parameters.DownloadArtifacts }}:
     - task: DownloadPipelineArtifact@2
+      condition: ${{ parameters.ReportingCondition }}
       displayName: 'Download ${{ coalesce(artifact.ArtifactName, "all artifacts") }} to ${{ artifact.Path }}'
       inputs:
         ${{ if ne(coalesce(artifact.ArtifactName, ''), '') }}:
@@ -40,12 +62,14 @@ jobs:
       continueOnError: ${{ coalesce(artifact.ContinueOnError, false) }}
     - ${{ if ne(coalesce(artifact.ExtractZip, ''), '') }}:
       - task: ExtractFiles@1
+        condition: ${{ parameters.ReportingCondition }}
         displayName: 'Extract ${{ artifact.ExtractZip }}'
         inputs:
           archiveFilePatterns: ${{ artifact.Path }}/${{ artifact.ExtractZip }}
           destinationFolder: ${{ coalesce(artifact.ExtractDestination, artifact.Path) }}
           cleanDestinationFolder: true
   - task: reportgenerator@5
+    condition: ${{ parameters.ReportingCondition }}
     displayName: Report Generator
     inputs:
       reports: '${{ parameters.CoverageReportsGlob }}'
@@ -106,17 +130,28 @@ jobs:
           -Verbose
         pwsh: true
   - task: PowerShell@2
+    condition: ${{ parameters.ReportingCondition }}
     displayName: Check number of completed test runs
     inputs:
       targetType: 'inline'
+      # a ${{ if }} conditional can't be nested inside a script: block scalar, only single-value
+      # ${{ }} substitutions can - so TestProjectsPath/AdditionalRequiredTestRunCount are passed
+      # via env: and the scan count is computed at runtime instead of compile time
       script: |
-        [int]$RequiredTestRunCount = ${{ parameters.RequiredTestRunCount }}
+        $TestProjectCount = 0
+        if ($env:TestProjectsPath -ne '') {
+          $TestProjectCount = (Get-ChildItem -Path $env:TestProjectsPath -Directory | Where-Object { $_.Name -match "tests" }).Count
+        }
+        $RequiredTestRunCount = [int]$env:AdditionalRequiredTestRunCount + $TestProjectCount
         if ([int]$env:CompletedTestRunCount -lt $RequiredTestRunCount) {
           throw "CompletedTestRunCount is $($env:CompletedTestRunCount), required RequiredTestRunCount is $RequiredTestRunCount, failing pipeline"
         }
     env:
+      TestProjectsPath: ${{ parameters.TestProjectsPath }}
+      AdditionalRequiredTestRunCount: ${{ parameters.AdditionalRequiredTestRunCount }}
       CompletedTestRunCount: $(CheckForFailedTests.CompletedTestRunCount)
   - task: PowerShell@2
+    condition: ${{ parameters.ReportingCondition }}
     displayName: Check for code coverage changes
     inputs:
       arguments: '-Verbose -AccessToken $(System.AccessToken) -AzureDevOpsOrganizationName ${{ parameters.AzureDevOpsOrganizationName }} -AzureDevOpsToolsPath $(Build.SourcesDirectory)/gandt-azure-devops-tools/gandt-azure-devops-tools/gandt-azure-devops-tools.psm1 -BaselineBranchName "${{ parameters.BaselineBranchName }}" -BuildDefinitionId $(System.DefinitionId) -ComparisonBuildId $(Build.BuildId) -AzDevOpsProject $(System.TeamProject)'
