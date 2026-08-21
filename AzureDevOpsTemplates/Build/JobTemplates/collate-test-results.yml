@@ -57,7 +57,7 @@ jobs:
   - ${{ each artifact in parameters.DownloadArtifacts }}:
     - task: DownloadPipelineArtifact@2
       condition: ${{ parameters.ReportingCondition }}
-      displayName: 'Download ${{ coalesce(artifact.ArtifactName, "all artifacts") }} to ${{ artifact.Path }}'
+      displayName: 'Download ${{ coalesce(artifact.ArtifactName, ''all artifacts'') }} to ${{ artifact.Path }}'
       inputs:
         ${{ if ne(coalesce(artifact.ArtifactName, ''), '') }}:
           artifact: ${{ artifact.ArtifactName }}
