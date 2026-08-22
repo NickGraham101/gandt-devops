@@ -28,6 +28,11 @@ parameters:
   # (Environment.ProcessorCount). Set to 1 for memory-heavy ReadWrite tests to keep
   # the agent pod under its 2G cgroup limit (see grahamandtonic B120).
   MaxParallelWorkers: ''
+  # steps to run before extraction/test work - e.g. NuGetAuthenticate@1 for a consumer
+  # whose test project restores from a private feed (each deployment job here is a fresh
+  # agent, so credentials from an earlier job's own NuGetAuthenticate step don't carry
+  # over). May include additional `checkout:` steps.
+  PreSteps: []
 
 jobs:
 - deployment: RunTests_${{ replace(parameters.TestProject, '.', '_') }}${{ parameters.TaskNameSuffix }}
@@ -42,6 +47,8 @@ jobs:
     runOnce:
       deploy:
         steps:
+        - ${{ each step in parameters.PreSteps }}:
+          - ${{ step }}
         - task: ExtractFiles@1
           inputs:
             archiveFilePatterns: $(Pipeline.Workspace)/${{ parameters.TestArtifactName }}/${{ coalesce(parameters.TestArchiveBaseName, parameters.TestArtifactName) }}.zip

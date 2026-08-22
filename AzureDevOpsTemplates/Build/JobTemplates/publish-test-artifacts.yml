@@ -21,6 +21,10 @@ parameters:
   # optional: a file (e.g. .runsettings) copied into each project's RunSettingsTargetPath
   # (or OutputPath if that's not set) before archiving
   RunSettingsSourcePath: ''
+  # steps to run after checkout, before the publish/archive work - e.g. NuGetAuthenticate@1
+  # for a consumer whose projects restore from a private feed. May include additional
+  # `checkout:` steps.
+  PreSteps: []
 
 jobs:
 - job: ${{ parameters.JobName }}
@@ -30,6 +34,8 @@ jobs:
     ${{ parameters.Pool }}
   steps:
   - checkout: self
+  - ${{ each step in parameters.PreSteps }}:
+    - ${{ step }}
   - ${{ each project in parameters.Projects }}:
     - task: DotNetCoreCLI@2
       displayName: 'dotnet publish application ${{ project.ProjectPath }}'
