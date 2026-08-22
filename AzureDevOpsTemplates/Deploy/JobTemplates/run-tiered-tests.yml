@@ -2,6 +2,15 @@ parameters:
   Environment:
   TestCategoryDomain:
   TestProject:
+  # optional - overrides just the folder-path portion of where the extracted test project
+  # is found under $(Build.SourcesDirectory)/src/, while TestProject itself keeps naming
+  # the .csproj file, the test run title, and the coverage/results artifact names. Needed
+  # when the source repo's test project doesn't live directly under a folder matching its
+  # own name (e.g. it has a ProjectReference reaching into a differently-rooted sibling
+  # folder, so the archive has to preserve the repo's real top-level layout instead of
+  # flattening to just the test project). Defaults to TestProject, matching today's only
+  # behaviour (test project living directly under a same-named folder).
+  TestProjectRelativePath: ''
   # the pipeline artifact to extract the test project from
   TestArtifactName:
   # zip base name (without .zip) inside TestArtifactName - defaults to matching
@@ -50,13 +59,13 @@ jobs:
           displayName: Test
           inputs:
             command: test
-            projects: $(Build.SourcesDirectory)/src/${{ parameters.TestProject }}/${{ parameters.TestProject }}.csproj
+            projects: $(Build.SourcesDirectory)/src/${{ coalesce(parameters.TestProjectRelativePath, parameters.TestProject) }}/${{ parameters.TestProject }}.csproj
             ${{ if and(eq(parameters.PublishCoverageResults, true), eq(length(parameters.TestCategoryDataChange), 0)) }}:
-              arguments: --filter TestCategory=${{ parameters.TestCategoryDomain }} --collect:"XPlat Code Coverage" --configuration Release --settings $(Build.SourcesDirectory)/src/${{ parameters.TestProject }}/.runsettings
+              arguments: --filter TestCategory=${{ parameters.TestCategoryDomain }} --collect:"XPlat Code Coverage" --configuration Release --settings $(Build.SourcesDirectory)/src/${{ coalesce(parameters.TestProjectRelativePath, parameters.TestProject) }}/.runsettings
             ${{ if and(eq(parameters.PublishCoverageResults, false), eq(length(parameters.TestCategoryDataChange), 0)) }}:
               arguments: --filter TestCategory=${{ parameters.TestCategoryDomain }} --configuration Release
             ${{ if and(eq(parameters.PublishCoverageResults, true), gt(length(parameters.TestCategoryDataChange), 0)) }}:
-              arguments: --filter "TestCategory=${{ parameters.TestCategoryDataChange }} & TestCategory=${{ parameters.TestCategoryDomain }}" --collect:"XPlat Code Coverage" --configuration Release --settings $(Build.SourcesDirectory)/src/${{ parameters.TestProject }}/.runsettings
+              arguments: --filter "TestCategory=${{ parameters.TestCategoryDataChange }} & TestCategory=${{ parameters.TestCategoryDomain }}" --collect:"XPlat Code Coverage" --configuration Release --settings $(Build.SourcesDirectory)/src/${{ coalesce(parameters.TestProjectRelativePath, parameters.TestProject) }}/.runsettings
             ${{ if and(eq(parameters.PublishCoverageResults, false), gt(length(parameters.TestCategoryDataChange), 0), eq(length(parameters.MaxParallelWorkers), 0)) }}:
               arguments: --filter "TestCategory=${{ parameters.TestCategoryDataChange }} & TestCategory=${{ parameters.TestCategoryDomain }}" --configuration Release
             ${{ if and(eq(parameters.PublishCoverageResults, false), gt(length(parameters.TestCategoryDataChange), 0), gt(length(parameters.MaxParallelWorkers), 0)) }}:
