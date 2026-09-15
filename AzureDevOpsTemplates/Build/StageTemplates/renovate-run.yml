@@ -31,7 +31,7 @@ stages:
       inputs:
         targetType: 'inline'
         script: |
-          Write-Output "##vso[task.setvariable variable=RunRenovate;isOutput=true]$false"
+          Write-Output "##vso[task.setvariable variable=RunRenovate;isOutput=true]false"
           Import-Module $(Build.SourcesDirectory)/gandt-azure-devops-tools/gandt-azure-devops-tools/gandt-azure-devops-tools.psm1
           $Params = @{
             Instance = "$(AzureDevOpsOrganizationName)"
@@ -61,7 +61,9 @@ stages:
         RENOVATE_TOKEN: $(System.AccessToken)
   - job: WaitForBuilds
     dependsOn: RunRenovate
-    condition: or(and(eq(dependencies.RunRenovate.outputs['CheckScheduleName.RunRenovate'], 'true'), succeeded()), ${{ and(parameters.RunRenovateManually, parameters.RunMergePRManually) }})
+    variables:
+      RunRenovate: $[ dependencies.RunRenovate.outputs['CheckScheduleName.RunRenovate'] ]
+    condition: or(and(eq(variables['RunRenovate'], 'true'), succeeded()), ${{ and(parameters.RunRenovateManually, parameters.RunMergePRManually) }})
     pool: server
     timeoutInMinutes: 0
     steps:
