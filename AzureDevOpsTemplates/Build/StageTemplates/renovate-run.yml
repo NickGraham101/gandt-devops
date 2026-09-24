@@ -68,6 +68,7 @@ stages:
     timeoutInMinutes: 0
     steps:
     - task: Delay@1
+      condition: or(and(eq(variables['RunRenovate'], 'true'), succeeded()), ${{ and(parameters.RunRenovateManually, parameters.RunMergePRManually) }})
       inputs:
         delayForMinutes: ${{ parameters.MergeDelayMinutes }}
   - job: MergePRs
