@@ -63,12 +63,12 @@ stages:
     dependsOn: RunRenovate
     variables:
       RunRenovate: $[ dependencies.RunRenovate.outputs['CheckScheduleName.RunRenovate'] ]
-    condition: or(and(eq(variables['RunRenovate'], 'true'), succeeded()), ${{ and(parameters.RunRenovateManually, parameters.RunMergePRManually) }})
+    condition: or(and(eq(variables['RunRenovate'], 'true'), succeeded()), ${{ and(eq(parameters.RunRenovateManually, true), eq(parameters.RunMergePRManually, true)) }})
     pool: server
     timeoutInMinutes: 0
     steps:
     - task: Delay@1
-      condition: or(and(eq(variables['RunRenovate'], 'true'), succeeded()), ${{ and(parameters.RunRenovateManually, parameters.RunMergePRManually) }})
+      condition: or(and(eq(variables['RunRenovate'], 'true'), succeeded()), ${{ and(eq(parameters.RunRenovateManually, true), eq(parameters.RunMergePRManually, true)) }})
       inputs:
         delayForMinutes: ${{ parameters.MergeDelayMinutes }}
   - job: MergePRs
