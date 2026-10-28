@@ -72,6 +72,7 @@ Standalone PowerShell scripts invoked by the ADO templates. Key scripts:
 | `Test-KubernetesDeploymentSucceeded.ps1` | Polls K8s deployment rollout status |
 | `Test-AllTestResults.ps1` | Aggregates multiple JUnit XML results; fails if any contain failures |
 | `Test-DependabotPullRequest.ps1` | Validates and auto-merges Dependabot PRs |
+| `Test-GitHubComToken.ps1` | Checks Renovate's github.com token; fails + Slack alert if missing/expired, Slack warning near expiry |
 | `Export-KeyVaultSecrets.ps1` / `Import-KeyVaultSecrets.ps1` | Migrate secrets between Key Vaults |
 
 ### ARMTemplates/
