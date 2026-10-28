@@ -14,6 +14,13 @@ parameters:
   # Agentless delay between raising the renovate PRs and merging them, giving
   # the PR validation builds time to complete on the single self-hosted agent
   MergeDelayMinutes: 120
+  # github.com token Renovate uses to download node/npm/yarn for lock file
+  # updates and to fetch release notes. Without it the anonymous api.github.com
+  # rate limit runs out on hosted agents and PRs are raised without their lock
+  # file. A fine-grained PAT with public repository read-only access is enough.
+  GitHubComToken:
+  # Post a Slack warning once the token is this close to expiring
+  GitHubComTokenExpiryWarningDays: 14
 
 stages:
 - stage: Renovate
@@ -25,6 +32,7 @@ stages:
     steps:
     - checkout: self
     - checkout: gandt-azure-devops-tools
+    - checkout: gandt-devops
     - task: PowerShell@2
       displayName: 'Check Schedule Name'
       name: CheckScheduleName
@@ -44,11 +52,24 @@ stages:
             Write-Output "Setting RunRenovate to true"
             Write-Output "##vso[task.setvariable variable=RunRenovate;isOutput=true]true"
           }
+    # Fail before Renovate runs if the token is missing, expired or revoked:
+    # Renovate itself only logs a warning and raises PRs without lock files
+    - task: PowerShell@2
+      displayName: 'Check GitHub Token'
+      condition: or(and(eq(variables['CheckScheduleName.RunRenovate'], 'true'), le(variables['System.JobAttempt'], 1), succeeded()), ${{ parameters.RunRenovateManually }})
+      inputs:
+        targetType: 'filePath'
+        filePath: gandt-devops/PSScripts/Test-GitHubComToken.ps1
+        arguments: -GitHubComToken $env:GITHUB_COM_TOKEN -SlackApiUrl "${{ parameters.SlackApiUrl }}" -BuildUrl "$(System.CollectionUri)$(System.TeamProject)/_build/results?buildId=$(Build.BuildId)" -BuildName "$(Build.DefinitionName)" -ExpiryWarningDays ${{ parameters.GitHubComTokenExpiryWarningDays }}
+        pwsh: true
+      env:
+        GITHUB_COM_TOKEN: ${{ parameters.GitHubComToken }}
     - script: |
         docker run --rm \
           -e RENOVATE_PLATFORM=azure \
           -e RENOVATE_ENDPOINT="https://dev.azure.com/$(AzureDevOpsOrganizationName)/" \
           -e RENOVATE_TOKEN \
+          -e RENOVATE_GITHUB_COM_TOKEN \
           -e RENOVATE_REPOSITORIES="$(System.TeamProject)/$(Build.Repository.Name)" \
           -e RENOVATE_ONBOARDING=false \
           -e RENOVATE_REQUIRE_CONFIG=required \
@@ -56,9 +77,10 @@ stages:
           -e LOG_LEVEL=info \
           renovate/renovate:${{ parameters.RenovateVersion }}
       displayName: Run Renovate
-      condition: or(and(eq(variables['CheckScheduleName.RunRenovate'], 'true'), le(variables['System.JobAttempt'], 1), succeeded()), ${{ parameters.RunRenovateManually }})
+      condition: and(succeeded(), or(and(eq(variables['CheckScheduleName.RunRenovate'], 'true'), le(variables['System.JobAttempt'], 1)), ${{ parameters.RunRenovateManually }}))
       env:
         RENOVATE_TOKEN: $(System.AccessToken)
+        RENOVATE_GITHUB_COM_TOKEN: ${{ parameters.GitHubComToken }}
   - job: WaitForBuilds
     dependsOn: RunRenovate
     variables:
