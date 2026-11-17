@@ -74,4 +74,41 @@ Describe "Set-Route53Record Unit Tests" -Tags @("Unit") {
             Assert-MockCalled -CommandName Edit-R53ResourceRecordSet -ParameterFilter { $ChangeBatch_Change.ResourceRecordSet.Type -eq "A" } -Exactly -Times 1
         }
     }
+
+    Context "TXT record params with a single value are used" {
+        It "Should create a TXT record set holding one quoted value on the named host" {
+            $TestParams = @{
+                DomainName = "example.com."
+                TxtRecordName = "foo"
+                TxtRecordValue = "bar=baz"
+            }
+
+            { .\Set-Route53Record.ps1 @TestParams } | Should -Not -Throw
+            Assert-MockCalled -CommandName Edit-R53ResourceRecordSet -Exactly -Times 1 -ParameterFilter {
+                $ChangeBatch_Change.ResourceRecordSet.Type -eq "TXT" -and
+                $ChangeBatch_Change.ResourceRecordSet.Name -eq "foo.example.com." -and
+                $ChangeBatch_Change.ResourceRecordSet.ResourceRecords.Count -eq 1 -and
+                $ChangeBatch_Change.ResourceRecordSet.ResourceRecords[0].Value -eq '"bar=baz"'
+            }
+        }
+    }
+
+    Context "TXT record params with multiple values on the root are used" {
+        It "Should create one root TXT record set holding every value, each quoted" {
+            $TestParams = @{
+                DomainName = "example.com."
+                TxtRecordName = ""
+                TxtRecordValue = @("v=spf1 include:spf.example.net ?all", "example-site-verification=abc123")
+            }
+
+            { .\Set-Route53Record.ps1 @TestParams } | Should -Not -Throw
+            Assert-MockCalled -CommandName Edit-R53ResourceRecordSet -Exactly -Times 1 -ParameterFilter {
+                $ChangeBatch_Change.ResourceRecordSet.Type -eq "TXT" -and
+                $ChangeBatch_Change.ResourceRecordSet.Name -eq "example.com." -and
+                $ChangeBatch_Change.ResourceRecordSet.ResourceRecords.Count -eq 2 -and
+                $ChangeBatch_Change.ResourceRecordSet.ResourceRecords[0].Value -eq '"v=spf1 include:spf.example.net ?all"' -and
+                $ChangeBatch_Change.ResourceRecordSet.ResourceRecords[1].Value -eq '"example-site-verification=abc123"'
+            }
+        }
+    }
 }
