@@ -14,6 +14,11 @@ jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    env:
+      # Pinned: later 5.0.x releases ship System.IO.Hashing 11.0, which fails to load once the runner's preinstalled
+      # Az.Storage has loaded System.IO.Hashing 6.0 earlier in the same session (Quality tests auto-load it). 5.0.14
+      # ships no System.IO.Hashing. The version is in the cache key so a bump invalidates the cache.
+      AWS_POWERSHELL_VERSION: 5.0.14
     steps:
     - name: Checkout
       uses: actions/checkout@v2
@@ -22,13 +27,13 @@ jobs:
       uses: actions/cache@v3
       with:
         path: "~/.local/share/powershell/Modules"
-        key: ${{ runner.os }}-AWSPowerShell.NetCore
+        key: ${{ runner.os }}-AWSPowerShell.NetCore-${{ env.AWS_POWERSHELL_VERSION }}
     - name: Install from PSGallery
       if: steps.cacher.outputs.cache-hit != 'true'
       shell: pwsh
       run: |
         Set-PSRepository PSGallery -InstallationPolicy Trusted
-        Install-Module AWSPowerShell.NetCore -Verbose
+        Install-Module AWSPowerShell.NetCore -RequiredVersion $env:AWS_POWERSHELL_VERSION -Verbose
     - name: Invoke Tests
       shell: pwsh
       run: Tests/Invoke-Tests.ps1
