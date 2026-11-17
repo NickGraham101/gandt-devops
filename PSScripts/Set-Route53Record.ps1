@@ -23,7 +23,9 @@ param(
     [String]$TxtRecordName,
     [Parameter(Mandatory=$true, ParameterSetName="TxtRecord")]
     [Parameter(Mandatory=$true, ParameterSetName="TxtRecordAwsCredentials")]
-    [String]$TxtRecordValue,
+    # One TXT record set per name: pass every value the set should hold (e.g. SPF plus site verification tokens on the
+    # root) - the UPSERT replaces the whole set, so values not passed here are removed.
+    [String[]]$TxtRecordValue,
     [Parameter(Mandatory=$true, ParameterSetName="ARecordAwsCredentials")]
     [Parameter(Mandatory=$true, ParameterSetName="CNameAwsCredentials")]
     [Parameter(Mandatory=$true, ParameterSetName="TxtRecordAwsCredentials")]
@@ -88,7 +90,7 @@ elseif ($PSCmdlet.ParameterSetName -match "^TxtRecord.*") {
         $RecordSetName = "$TxtRecordName.$DomainName"
 
     }
-    $RecordSetValue = $TxtRecordValue | ConvertTo-Json
+    $RecordSetValue = @($TxtRecordValue | ForEach-Object { $_ | ConvertTo-Json })
     $RecordSetType = "TXT"
 
 }
@@ -106,9 +108,11 @@ $Change.ResourceRecordSet.Name = $RecordSetName
 $Change.ResourceRecordSet.Type = $RecordSetType
 $Change.ResourceRecordSet.TTL = $TTL
 $Change.ResourceRecordSet.ResourceRecords = @()
-$Change.ResourceRecordSet.ResourceRecords.Add(@{Value=$RecordSetValue})
+foreach ($Value in @($RecordSetValue)) {
+    $Change.ResourceRecordSet.ResourceRecords.Add(@{Value=$Value})
+}
 
-$ChangeComment = "This change batch updates the $RecordSetType record for $RecordSetName to $RecordSetValue"
+$ChangeComment = "This change batch updates the $RecordSetType record for $RecordSetName to $(@($RecordSetValue) -join ', ')"
 if ($ChangeComment.Length -gt 256) {
     $ChangeComment = "$($ChangeComment.Substring(0,253))..."
 }
