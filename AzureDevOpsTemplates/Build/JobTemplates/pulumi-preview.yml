@@ -5,11 +5,16 @@ parameters:
   PulumiProjectRoot:
   PulumuiStateLocation:
   Stack:
+  # Optional steps run after checkout and before Pulumi, e.g. to write
+  # credentials for a non-Azure provider. Defaults to none.
+  PreSteps: []
 
 jobs:
 - job: PulumiPreview_${{ parameters.Stack }}
   steps:
   - checkout: self
+  - ${{ each Step in parameters.PreSteps }}:
+    - ${{ Step }}
   - task: Pulumi@1
     displayName: Pulumi Install
     inputs:
